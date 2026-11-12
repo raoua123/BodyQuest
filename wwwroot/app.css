@@ -1,0 +1,73 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&display=swap');
+
+:root {
+    --ink: #34345c;
+    --muted: #77799b;
+    --cream: #fffaf0;
+    --purple: #8174d9;
+    --pink: #ff8eaa;
+    --yellow: #ffd66e;
+    --mint: #83dfcf;
+    --blue: #8bc9f4;
+    --line: #eee8f7;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+    background:
+        radial-gradient(circle at 8% 12%, #fff0f4 0 2px, transparent 3px),
+        radial-gradient(circle at 90% 30%, #e8f8f5 0 3px, transparent 4px),
+        var(--cream);
+    color: var(--ink);
+    font-family: 'Nunito', sans-serif;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+button, input {
+    font: inherit;
+}
+
+/* Main layout */
+
+.bodyquest-layout {
+    width: 100%;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+/* Blazor error notification */
+
+#blazor-error-ui {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 12px 20px;
+    background: #fff3cd;
+    color: #664d03;
+    z-index: 99999;
+    box-shadow: 0 -2px 10px rgba(0,0,0,.1);
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    float: right;
+}

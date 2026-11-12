@@ -1,0 +1,250 @@
+@page "/"
+@inject ModuleService Modules
+
+<PageTitle>BodyQuest — La grande aventure du corps</PageTitle>
+
+<div class="bq-game">
+    <header class="bq-topbar">
+        <a class="bq-logo" href="/" aria-label="BodyQuest accueil">
+            <span class="bq-logo-mark">B!</span>
+            <span>body<span>quest</span></span>
+        </a>
+
+        <nav class="bq-nav">
+            <a class="selected" href="#world-map">Carte du monde</a>
+            <a href="#daily-mission">Mission du jour</a>
+        </nav>
+
+        <div class="bq-player-pill">
+            <span class="player-avatar">★</span>
+            <span>Petit explorateur</span>
+            <span class="player-level">NIVEAU 1</span>
+        </div>
+    </header>
+
+    <main class="bq-main">
+        <section class="bq-hero">
+            <div class="bq-hero-spark spark-a">✦</div>
+            <div class="bq-hero-spark spark-b">✧</div>
+            <div class="bq-hero-copy">
+                <div class="bq-world-tag"><span></span> BIENVENUE DANS TON TERRAIN DE JEU</div>
+                <h1>Prêt pour une<br /><em>super aventure</em> ?</h1>
+                <p>
+                    Rétrécis-toi, enfile ta combinaison et pars explorer
+                    les incroyables secrets cachés dans ton corps !
+                </p>
+                <a class="bq-play-button" href="#world-map">
+                    <span class="play-icon">▶</span>
+                    C'EST PARTI !
+                </a>
+                <div class="bq-hero-footnote">
+                    <span class="tiny-star">✦</span>
+                    7 mondes merveilleux à découvrir
+                </div>
+            </div>
+
+            <div class="bq-hero-stage">
+                <div class="bq-cloud cloud-one"></div>
+                <div class="bq-cloud cloud-two"></div>
+                <div class="bq-planet planet-one"></div>
+                <div class="bq-planet planet-two"></div>
+                <div class="bq-portal-ring"></div>
+                <img class="bq-portal-art" src="/images/portal.png" alt="" />
+                <img class="bq-mascot" src="/images/body-explorer.png"
+                     alt="Ton petit guide explorateur" />
+                <div class="speech-bubble">
+                    Coucou ! On part<br />à l'aventure ?
+                    <span class="bubble-tail"></span>
+                </div>
+                <div class="bq-hero-star star-one">✦</div>
+                <div class="bq-hero-star star-two">✧</div>
+                <div class="bq-hero-star star-three">✦</div>
+            </div>
+        </section>
+
+        <section class="bq-stats-strip" aria-label="Ton aventure">
+            <div class="bq-stat">
+                <span class="stat-icon stat-pink">★</span>
+                <span><strong>@_stars</strong><small>ÉTOILES GAGNÉES</small></span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="bq-stat">
+                <span class="stat-icon stat-blue">♡</span>
+                <span><strong>@(_modules?.Count ?? 0)</strong><small>MONDES À VISITER</small></span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="bq-stat">
+                <span class="stat-icon stat-yellow">✿</span>
+                <span><strong>NIVEAU 1</strong><small>APPRENTI SCIENTIFIQUE</small></span>
+            </div>
+        </section>
+
+        <section class="bq-map-section" id="world-map">
+            <div class="bq-section-title">
+                <div>
+                    <div class="bq-kicker">CHOISIS TON PROCHAIN VOYAGE</div>
+                    <h2>La carte des <span>merveilles</span></h2>
+                    <p>Chaque monde cache des surprises. À toi de les découvrir !</p>
+                </div>
+                <div class="map-stamp"><span>GO!</span><small>EXPLORE<br />& LEARN</small></div>
+            </div>
+
+            <div class="bq-search-row">
+                <label class="bq-search">
+                    <span>⌕</span>
+                    <input type="text" placeholder="Cherche un monde..."
+                           @bind="_search" @bind:event="oninput" />
+                </label>
+                <span class="bq-map-hint">CHOISIS UN PORTAIL POUR COMMENCER <b>↴</b></span>
+            </div>
+
+            @if (_modules is null)
+            {
+                <div class="bq-loading">
+                    <div class="loading-orbit"></div>
+                    <strong>On prépare ton vaisseau...</strong>
+                    <span>Encore un tout petit instant !</span>
+                </div>
+            }
+            else if (!FilteredModules.Any())
+            {
+                <div class="bq-empty">
+                    <img src="/images/body-explorer.png" alt="" />
+                    <strong>Oups ! Ce monde est introuvable.</strong>
+                    <button type="button" @onclick="ResetSearch">Voir tous les mondes</button>
+                </div>
+            }
+            else
+            {
+                <div class="bq-world-grid">
+                    @foreach (var m in FilteredModules)
+                    {
+                        <a class="bq-world-card @GetCardClass(m.Slug)"
+                           href="@($"/module/{m.Slug}")">
+                            <div class="world-card-top">
+                                <span class="world-number">MONDE @((FilteredModules.IndexOf(m) + 1).ToString("00"))</span>
+                                <span class="world-card-star">✦</span>
+                            </div>
+                            <div class="world-art-wrap">
+                                <div class="world-art-orbit"></div>
+<img src="@GetImage(m.Slug, m.Title)" alt="@m.Title" loading="lazy" />                                <span class="world-go">JOUER ! <b>→</b></span>
+                            </div>
+                            <div class="world-card-info">
+                                <h3>@m.Title</h3>
+                                <p>@m.Description</p>
+                                <div class="world-card-bottom">
+                                    <span>ENTRER DANS CE MONDE</span>
+                                    <span class="world-progress-dots"><i></i><i></i><i></i></span>
+                                </div>
+                            </div>
+                        </a>
+                    }
+                </div>
+            }
+        </section>
+
+        <section class="bq-daily" id="daily-mission">
+            <div class="daily-confetti confetti-one">✦</div>
+            <div class="daily-confetti confetti-two">✧</div>
+            <div class="daily-copy">
+                <div class="daily-label"><span>✦</span> MINI-MISSION DU JOUR</div>
+                <h2>Le savais-tu ?</h2>
+                <p>Ton cœur est un muscle extraordinaire : il travaille sans s'arrêter pour envoyer le sang partout dans ton corps.</p>
+                @if (!_factRevealed)
+                {
+                    <button class="daily-button" type="button" @onclick="RevealFact">
+                        DÉCOUVRIR LA SURPRISE <span>→</span>
+                    </button>
+                }
+                else
+                {
+                    <div class="daily-reward">
+                        <span class="reward-star">★</span>
+                        <span>Bravo ! Tu viens de découvrir un fait incroyable !</span>
+                    </div>
+                }
+            </div>
+            <div class="daily-art">
+                <img src="/images/heart.png" alt="Petit cœur souriant" />
+                <span class="heart-spark spark-left">✦</span>
+                <span class="heart-spark spark-right">✧</span>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bq-footer">
+        <a class="bq-logo" href="/"><span class="bq-logo-mark">B!</span><span>body<span>quest</span></span></a>
+        <p>Les petites curiosités font les grandes découvertes !</p>
+        <span>FAIT POUR LES PETITS EXPLORATEURS</span>
+    </footer>
+</div>
+
+@code {
+    private List<BodyModule>? _modules;
+    private string _search = "";
+    private int _stars = 0;
+    private bool _factRevealed;
+
+    private List<BodyModule> FilteredModules =>
+        _modules?
+            .Where(m =>
+                m.Title.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                m.Description.Contains(_search, StringComparison.OrdinalIgnoreCase))
+            .ToList() ?? new();
+
+    private void ResetSearch() => _search = "";
+
+    private void RevealFact()
+    {
+        if (!_factRevealed)
+        {
+            _factRevealed = true;
+            _stars += 1;
+        }
+    }
+
+    private string GetCardClass(string slug) => slug.ToLowerInvariant() switch
+    {
+        "brain" => "world-brain",
+        "heart" => "world-heart",
+        "lungs" => "world-lungs",
+        "digestive-system" => "world-digestive",
+        "nervous-system" => "world-nervous",
+        "skeleton" => "world-skeleton",
+        "muscular-system" => "world-muscles",
+        _ => "world-default"
+    };
+
+   private string GetImage(string? slug, string? title)
+{
+    var key = $"{slug} {title}".ToLowerInvariant();
+
+    if (key.Contains("brain") || key.Contains("cerveau"))
+        return "/images/brain.png";
+
+    if (key.Contains("heart") || key.Contains("coeur") || key.Contains("cœur"))
+        return "/images/heart.png";
+
+    if (key.Contains("lung") || key.Contains("poumon") || key.Contains("respiration"))
+        return "/images/lungs.png";
+
+    if (key.Contains("digest") || key.Contains("digestion"))
+        return "/images/digestive.png";
+
+    if (key.Contains("nerv") || key.Contains("neurone"))
+        return "/images/neuron.png";
+
+    if (key.Contains("skeleton") || key.Contains("os") || key.Contains("squelette"))
+        return "/images/skeleton.png";
+
+    if (key.Contains("muscle") || key.Contains("musculaire"))
+        return "/images/skeleton.png";
+
+    return "/images/blood-cell.png";
+}
+
+    protected override async Task OnInitializedAsync()
+    {
+        _modules = await Modules.GetAllAsync();
+    }
+}
