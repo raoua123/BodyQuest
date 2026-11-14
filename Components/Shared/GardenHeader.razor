@@ -1,0 +1,51 @@
+@* Top bar with the map / profile switch, star counter, sound and music buttons. Use: <GardenHeader Active="profile" /> *@
+@inject WorldProgressService Progress
+
+<header class="gd-header">
+    <a href="/" class="gd-logo" data-snd="tap">
+        <span class="gd-logo-mark">B!</span>
+        <span>body<span>quest</span></span>
+    </a>
+
+    <nav class="gd-nav" aria-label="Main">
+        <a class="@(Active == "map" ? "gd-nav-active" : "")" href="/" data-snd="tap">
+            <svg class="bq-i"><use href="#i-map" /></svg> Adventure map
+        </a>
+        <a class="@(Active == "profile" ? "gd-nav-active" : "")" href="/profile" data-snd="tap">
+            <svg class="bq-i"><use href="#i-user" /></svg> My profile
+        </a>
+    </nav>
+
+    <div class="gd-tools">
+        <span class="gd-chip gd-chip-stars" title="Your stars">
+            <svg class="bq-i"><use href="#i-star" /></svg> @_stars
+        </span>
+        <button type="button" class="gd-tool @(_muted ? "is-off" : "")" title="Sound effects"
+                aria-label="@(_muted ? "Turn sounds on" : "Turn sounds off")" @onclick="ToggleSound">
+            <svg class="bq-i"><use href="@(_muted ? "#i-speaker-off" : "#i-speaker")" /></svg>
+        </button>
+        <button type="button" class="gd-tool @(_music ? "is-on" : "")" title="Music"
+                aria-label="@(_music ? "Turn music off" : "Turn music on")" @onclick="ToggleMusic">
+            <svg class="bq-i"><use href="#i-note" /></svg>
+        </button>
+    </div>
+</header>
+
+@code {
+    [Parameter] public string Active { get; set; } = "map";
+
+    private int _stars;
+    private bool _muted, _music;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _stars = await Progress.GetTotalStarsAsync();
+        _muted = await Progress.IsMutedAsync();
+        StateHasChanged();
+    }
+
+    private async Task ToggleSound() => _muted = await Progress.SetMutedAsync(!_muted);
+
+    private async Task ToggleMusic() => _music = await Progress.SetMusicAsync(!_music);
+}

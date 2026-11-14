@@ -1,310 +1,350 @@
-
 @page "/profile"
 
-<PageTitle>Mon explorateur — BodyQuest</PageTitle>
+@inject ProfileService Profiles
+@inject WorldProgressService Progress
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
 
-<div class="bq-profile">
+<PageTitle>BodyQuest - My Explorer</PageTitle>
 
-    <header class="bp-header">
-        <a href="/" class="bp-brand">
-            <span class="bp-brand-icon">B!</span>
-            <span>body<span>quest</span></span>
-        </a>
+<div class="gd-page pf-page">
 
-        <a href="/" class="bp-back">← Retour à l'aventure</a>
-    </header>
+    <div class="gd-sky" aria-hidden="true">
+        <div class="gd-sun" data-pop="1"><span class="gd-sun-core"></span></div>
+        <span class="gd-cloud gd-cloud-a"></span>
+        <span class="gd-cloud gd-cloud-b"></span>
+        <span class="gd-cloud gd-cloud-c"></span>
+        <span class="gd-bird gd-bird-a"></span>
+    </div>
 
-    <main class="bp-main">
+    <GardenHeader Active="profile" />
 
-        <section class="bp-welcome">
-            <div class="bp-welcome-text">
-                <span class="bp-eyebrow">MON ESPACE D'EXPLORATION</span>
-                <h1>Salut, petit <span>scientifique !</span></h1>
-                <p>Ton corps cache encore plein de mystères. Prêt à continuer ton exploration ?</p>
+    <main class="gd-main pf-main">
 
-                <div class="bp-level-card">
-                    <div class="bp-avatar">
-                        <img src="/images/body-explorer.png" alt="Mon explorateur" />
-                    </div>
-                    <div class="bp-level-info">
-                        <strong>Explorateur cellulaire</strong>
-                        <span>Niveau @_level · @_stars étoiles</span>
-                        <div class="bp-level-progress">
-                            <div style="width: @_levelProgress%"></div>
-                        </div>
-                        <small>@_levelProgress% vers le niveau suivant</small>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bp-welcome-art">
-                <div class="bp-orbit bp-orbit-one"></div>
-                <div class="bp-orbit bp-orbit-two"></div>
-                <span class="bp-floating bp-float-one">✦</span>
-                <span class="bp-floating bp-float-two">＋</span>
-                <span class="bp-floating bp-float-three">●</span>
+        @if (_p is null)
+        {
+            <div class="pf-card pf-loading">
                 <img src="/images/body-explorer.png" alt="" />
-                <div class="bp-speech">Explorons le corps humain !</div>
+                <strong>Getting your explorer card...</strong>
             </div>
-        </section>
+        }
+        else
+        {
+            @* ---------- explorer card + next step ---------- *@
+            <section class="pf-hero">
 
-        <section class="bp-stats">
-            <div class="bp-stat bp-stat-pink">
-                <span class="bp-stat-icon">♥</span>
-                <div><strong>@_completed</strong><small>Zones découvertes</small></div>
-            </div>
-            <div class="bp-stat bp-stat-purple">
-                <span class="bp-stat-icon">✦</span>
-                <div><strong>@_stars</strong><small>Étoiles gagnées</small></div>
-            </div>
-            <div class="bp-stat bp-stat-mint">
-                <span class="bp-stat-icon">✎</span>
-                <div><strong>12</strong><small>Quiz terminés</small></div>
-            </div>
-            <div class="bp-stat bp-stat-yellow">
-                <span class="bp-stat-icon">♧</span>
-                <div><strong>4</strong><small>Badges obtenus</small></div>
-            </div>
-        </section>
+                <div class="pf-card pf-id">
+                    <div class="pf-avatar-wrap">
+                        <div class="pf-avatar"><img src="@(_editing ? AvatarPath(_avatarInput) : _p.Avatar.Path)" alt="" /></div>
+                        <span class="pf-level">Level @_p.Level</span>
+                    </div>
 
-        <section class="bp-journey">
-            <div class="bp-section-heading">
-                <div>
-                    <span class="bp-eyebrow">TON VOYAGE À L'INTÉRIEUR DE TOI</span>
-                    <h2>La carte du <span>corps humain</span></h2>
-                    <p>Explore chaque système pour découvrir ses secrets !</p>
-                </div>
-                <div class="bp-map-key">
-                    <span><i class="key-done"></i> Découvert</span>
-                    <span><i class="key-current"></i> En cours</span>
-                    <span><i class="key-locked"></i> À découvrir</span>
-                </div>
-            </div>
+                    <div class="pf-id-text">
+                        @if (!_editing)
+                        {
+                            <span class="gd-eyebrow">MY EXPLORER CARD</span>
+                            <h1>@_p.Name</h1>
+                            <p class="pf-rank">@_p.Rank</p>
 
-            <div class="bp-map">
-                <div class="bp-map-decoration bp-dna">〰</div>
-                <div class="bp-map-decoration bp-cell">✧</div>
-                <div class="bp-map-decoration bp-star">✦</div>
-                <div class="bp-map-decoration bp-bubble">○</div>
+                            <div class="pf-xp">
+                                <div class="gd-bar"><div class="gd-bar-fill" style="width:@(_p.LevelPercent)%"></div></div>
+                                <small>@_p.LevelPercent% to level @(_p.Level + 1)</small>
+                            </div>
 
-                <svg class="bp-path" viewBox="0 0 1000 600" preserveAspectRatio="none">
-                    <path d="M130 480 C210 440 220 350 330 350 S440 410 510 300 S650 180 730 230 S850 320 900 130"
-                          fill="none" stroke="#d8c9f4" stroke-width="13"
-                          stroke-linecap="round" stroke-dasharray="2 22"/>
-                    <path d="M130 480 C210 440 220 350 330 350 S440 410 510 300 S650 180 730 230 S850 320 900 130"
-                          fill="none" stroke="#ffffff" stroke-width="4"
-                          stroke-linecap="round" stroke-dasharray="2 22"/>
-                </svg>
+                            <button type="button" class="pf-edit" data-snd="open" @onclick="StartEdit">Edit my explorer</button>
+                        }
+                        else
+                        {
+                            <span class="gd-eyebrow">CHOOSE YOUR LOOK</span>
+                            <label class="pf-label" for="pf-name">Explorer name</label>
+                            <input id="pf-name" class="pf-input" maxlength="16" placeholder="Your name"
+                                   @bind="_nameInput" @bind:event="oninput" />
 
-                @foreach (var world in _worlds)
-                {
-                    <button class="bp-world @world.Status"
-                            style="left:@(world.X)%; top:@(world.Y)%"
-                            disabled="@(world.Status == "locked")"
-                            @onclick="() => SelectWorld(world)">
+                            <div class="pf-avatars" role="radiogroup" aria-label="Choose an avatar">
+                                @foreach (var a in ProfileService.Avatars)
+                                {
+                                    <button type="button" role="radio" aria-checked="@(a.Id == _avatarInput ? "true" : "false")"
+                                            class="pf-avatar-pick @(a.Id == _avatarInput ? "is-picked" : "")"
+                                            data-snd="pop" title="@a.Label" @onclick="() => _avatarInput = a.Id">
+                                        <img src="@a.Path" alt="@a.Label" />
+                                    </button>
+                                }
+                            </div>
 
-                        <span class="bp-world-image">
-                            <img src="@world.Image" alt="" />
-                            @if (world.Status == "done")
+                            @if (_editError is not null)
                             {
-                                <span class="bp-world-check">✓</span>
+                                <p class="pf-error">@_editError</p>
                             }
-                            else if (world.Status == "locked")
+
+                            <div class="pf-edit-actions">
+                                <button type="button" class="gd-cta pf-save" data-snd="pop" @onclick="SaveEdit">Save</button>
+                                <button type="button" class="pf-cancel" data-snd="close" @onclick="CancelEdit">Cancel</button>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="pf-card pf-next">
+                    @if (_p.CurrentWorld is { } next)
+                    {
+                        <span class="gd-eyebrow">NEXT STOP</span>
+                        <div class="pf-next-body" style="--c:@(next.Accent)">
+                            <img src="@next.Image" alt="" />
+                            <div>
+                                <strong>@next.Title</strong>
+                                <small>@next.LessonsDone of @next.LessonsTotal lessons</small>
+                            </div>
+                        </div>
+                        <button type="button" class="gd-cta" data-snd="pop" @onclick="() => OpenWorld(next)">
+                            @(next.LessonsDone == 0 ? "Start" : "Continue") <svg class="bq-i"><use href="#i-arrow" /></svg>
+                        </button>
+                    }
+                    else
+                    {
+                        <span class="gd-eyebrow">ALL DONE</span>
+                        <div class="pf-next-body pf-next-done">
+                            <img src="/images/body-explorer.png" alt="" />
+                            <div>
+                                <strong>You explored every world!</strong>
+                                <small>Replay any lesson from the list below.</small>
+                            </div>
+                        </div>
+                        <button type="button" class="gd-cta" data-snd="pop" @onclick="Party">Celebrate</button>
+                    }
+                </div>
+            </section>
+
+            @* ---------- stats ---------- *@
+            <section class="pf-stats">
+                <div class="pf-stat pf-stat-gold">
+                    <span><svg class="bq-i"><use href="#i-star" /></svg></span>
+                    <div><strong>@_p.Stars</strong><small>Stars earned</small></div>
+                </div>
+                <div class="pf-stat pf-stat-green">
+                    <span><svg class="bq-i"><use href="#i-check" /></svg></span>
+                    <div><strong>@_p.LessonsDone<em> / @_p.LessonsTotal</em></strong><small>Lessons learned</small></div>
+                </div>
+                <div class="pf-stat pf-stat-purple">
+                    <span><svg class="bq-i"><use href="#i-flag" /></svg></span>
+                    <div><strong>@_p.WorldsDone<em> / @_p.Worlds.Count</em></strong><small>Worlds finished</small></div>
+                </div>
+                <div class="pf-stat pf-stat-pink">
+                    <span><svg class="bq-i"><use href="#i-bulb" /></svg></span>
+                    <div><strong>@_p.BadgesEarned<em> / @_p.Badges.Count</em></strong><small>Badges won</small></div>
+                </div>
+            </section>
+
+            @* ---------- worlds ---------- *@
+            <section class="pf-section">
+                <div class="pf-heading">
+                    <span class="gd-eyebrow">YOUR JOURNEY</span>
+                    <h2>My worlds</h2>
+                </div>
+
+                <div class="pf-worlds">
+                    @foreach (var w in _p.Worlds)
+                    {
+                        var world = w;
+                        <button type="button"
+                                class="pf-world @(world.Completed ? "is-done" : world.Unlocked ? "is-open" : "is-locked") @(_shake == world.Slug ? "is-shake" : "")"
+                                style="--c:@(world.Accent);--p:@(world.Percent)"
+                                data-snd="@(world.Unlocked ? "pop" : "locked")"
+                                @onclick="() => OpenWorld(world)">
+                            <span class="pf-ring">
+                                <img src="@world.Image" alt="" />
+                                @if (world.Completed)
+                                {
+                                    <i class="pf-tick"><svg class="bq-i"><use href="#i-check" /></svg></i>
+                                }
+                                else if (!world.Unlocked)
+                                {
+                                    <i class="pf-lock"><svg class="bq-i"><use href="#i-lock" /></svg></i>
+                                }
+                            </span>
+                            <strong>@world.Title</strong>
+                            <small>@(world.Unlocked ? $"{world.LessonsDone} / {world.LessonsTotal} lessons" : "Locked")</small>
+                            @if (world.Unlocked)
                             {
-                                <span class="bp-lock">🔒</span>
+                                <span class="pf-world-stars">
+                                    <svg class="bq-i"><use href="#i-star" /></svg> @world.Stars
+                                </span>
                             }
-                        </span>
-                        <span class="bp-world-label">@world.Name</span>
-                        <span class="bp-world-sub">@world.Subtitle</span>
-                    </button>
-                }
-
-                <div class="bp-map-caption">
-                    <span>🧬</span>
-                    <strong>Bienvenue dans ton corps !</strong>
-                    <small>Un univers extraordinaire t'attend.</small>
+                        </button>
+                    }
                 </div>
-            </div>
+            </section>
 
-            <div class="bp-selected-world">
-                <div class="bp-selected-image">
-                    <img src="@_selectedWorld.Image" alt="@_selectedWorld.Name" />
-                </div>
-                <div class="bp-selected-info">
-                    <span class="bp-eyebrow">PROCHAINE ÉTAPE</span>
-                    <h3>@_selectedWorld.Name</h3>
-                    <p>@_selectedWorld.Description</p>
-                    <span class="bp-world-reward">✦ Récompense : @_selectedWorld.Reward étoiles</span>
-                </div>
-                @if (_selectedWorld.Status != "locked")
-                {
-                    <button class="bp-continue" @onclick="ContinueAdventure">
-                        @(_selectedWorld.Status == "done" ? "Revoir la zone" : "Continuer") <span>→</span>
-                    </button>
-                }
-                else
-                {
-                    <span class="bp-coming-soon">Bientôt disponible 🔒</span>
-                }
-            </div>
-        </section>
+            @* ---------- badges + fun fact ---------- *@
+            <section class="pf-bottom">
+                <div class="pf-card pf-badges-card">
+                    <div class="pf-badges-head">
+                        <div>
+                            <span class="gd-eyebrow">YOUR LITTLE VICTORIES</span>
+                            <h2>My badges</h2>
+                        </div>
+                        <span class="pf-count">@_p.BadgesEarned / @_p.Badges.Count</span>
+                    </div>
 
-        <section class="bp-bottom">
-            <div class="bp-achievements">
-                <div class="bp-bottom-heading">
-                    <div>
-                        <span class="bp-eyebrow">TES PETITES VICTOIRES</span>
-                        <h2>Ma collection de badges</h2>
-                    </div>
-                    <span class="bp-count">4 / 8</span>
-                </div>
-
-                <div class="bp-badges">
-                    <div class="bp-badge-item">
-                        <div class="bp-badge badge-brain"><img src="/images/brain.png" alt="" /></div>
-                        <strong>Génie du cerveau</strong>
-                        <small>Premier neurone découvert</small>
-                    </div>
-                    <div class="bp-badge-item">
-                        <div class="bp-badge badge-heart"><img src="/images/heart.png" alt="" /></div>
-                        <strong>Super cœur</strong>
-                        <small>Maître des battements</small>
-                    </div>
-                    <div class="bp-badge-item">
-                        <div class="bp-badge badge-lungs"><img src="/images/lungs.png" alt="" /></div>
-                        <strong>Grand souffle</strong>
-                        <small>Mission respiration réussie</small>
-                    </div>
-                    <div class="bp-badge-item">
-                        <div class="bp-badge badge-cell"><img src="/images/blood-cell.png" alt="" /></div>
-                        <strong>Mini biologiste</strong>
-                        <small>Explorateur de cellules</small>
+                    <div class="pf-badges">
+                        @foreach (var b in _p.Badges)
+                        {
+                            <div class="pf-badge @(b.Earned ? "is-earned" : "is-locked")"
+                                 data-pop="@(b.Earned ? "1" : null)" data-snd="@(b.Earned ? null : "locked")">
+                                <span class="pf-badge-art">
+                                    <img src="@b.Image" alt="" />
+                                    @if (!b.Earned)
+                                    {
+                                        <i><svg class="bq-i"><use href="#i-lock" /></svg></i>
+                                    }
+                                </span>
+                                <strong>@b.Name</strong>
+                                <small>@b.Hint</small>
+                            </div>
+                        }
                     </div>
                 </div>
-            </div>
 
-            <aside class="bp-fun-fact">
-                <span class="bp-fact-icon">💡</span>
-                <span class="bp-eyebrow">LE SAVIEZ-VOUS ?</span>
-                <h3>Ton corps est incroyable !</h3>
-                <p>Ton cœur bat environ 100 000 fois par jour. C'est comme une petite machine qui travaille sans jamais prendre de pause !</p>
-                <span class="bp-fact-decoration">♥</span>
-            </aside>
-        </section>
-
-        <footer class="bp-footer">
-            <span>🧬 BodyQuest</span>
-            <span>Chaque découverte te rapproche des secrets du corps humain.</span>
-        </footer>
-
+                <aside class="pf-card pf-fact">
+                    <svg class="bq-i pf-fact-icon"><use href="#i-bulb" /></svg>
+                    <span class="gd-eyebrow">DID YOU KNOW?</span>
+                    <h3>Your body is amazing!</h3>
+                    <p>@Facts[_factIndex]</p>
+                    <button type="button" class="pf-link" data-snd="pop" @onclick="NextFact">Another fact</button>
+                </aside>
+            </section>
+        }
     </main>
+
+    @if (_celebrate is { } badge)
+    {
+        <div class="pf-overlay" @onclick="NextBadge">
+            <div class="pf-modal" @onclick:stopPropagation="true">
+                <div class="pf-modal-art"><img src="@badge.Image" alt="" /></div>
+                <span class="gd-eyebrow">NEW BADGE!</span>
+                <h2>@badge.Name</h2>
+                <p>@badge.Hint</p>
+                <button type="button" class="gd-cta" @onclick="NextBadge">Yay!</button>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
-    private int _level = 3;
-    private int _stars = 125;
-    private int _levelProgress = 68;
-    private int _completed = 3;
+    private ProfileService.ExplorerProfile? _p;
+    private bool _editing;
+    private string _nameInput = "";
+    private string _avatarInput = "milo";
+    private string? _editError;
+    private string? _shake;
+    private int _factIndex;
+    private readonly Queue<ProfileService.BadgeInfo> _queue = new();
+    private ProfileService.BadgeInfo? _celebrate;
 
-    private List<BodyWorld> _worlds = new()
+    private static readonly string[] Facts =
     {
-        new BodyWorld
+        "Your heart beats about 100,000 times every day!",
+        "Your brain has billions of tiny neurons.",
+        "You have 206 bones when you grow up.",
+        "Your lungs work all day, even while you sleep.",
+        "Your tongue has thousands of tiny taste buds.",
+        "Your stomach squishes food like a washing machine!",
+        "Your skin is the biggest organ you have.",
+        "Blood travels all around your body in about one minute."
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        _p = await Profiles.LoadAsync();
+        _factIndex = Random.Shared.Next(Facts.Length);
+        StateHasChanged();
+
+        // Celebrate badges the child has earned but has not seen yet.
+        var fresh = await Profiles.GetNewBadgesAsync(_p);
+        if (fresh.Count > 0)
         {
-            Name = "Le Royaume du cerveau",
-            Subtitle = "Système nerveux",
-            Image = "/images/brain.png",
-            Description = "Découvre le centre de commande de ton corps : le cerveau, les neurones et leurs incroyables messages.",
-            Reward = 30,
-            Status = "done",
-            X = 13,
-            Y = 75
-        },
-        new BodyWorld
-        {
-            Name = "La Cité du cœur",
-            Subtitle = "Circulation sanguine",
-            Image = "/images/heart.png",
-            Description = "Suis le voyage du sang et découvre comment ton cœur pompe la vie dans tout ton corps.",
-            Reward = 25,
-            Status = "done",
-            X = 33,
-            Y = 55
-        },
-        new BodyWorld
-        {
-            Name = "Les montagnes respiratoires",
-            Subtitle = "Système respiratoire",
-            Image = "/images/lungs.png",
-            Description = "Entre dans tes poumons et découvre comment ton corps récupère l'oxygène dont il a besoin.",
-            Reward = 25,
-            Status = "current",
-            X = 51,
-            Y = 48
-        },
-        new BodyWorld
-        {
-            Name = "La vallée digestive",
-            Subtitle = "Système digestif",
-            Image = "/images/digestive.png",
-            Description = "Suis le parcours des aliments et découvre comment ton corps transforme ce que tu manges en énergie.",
-            Reward = 30,
-            Status = "locked",
-            X = 73,
-            Y = 30
-        },
-        new BodyWorld
-        {
-            Name = "La forteresse des os",
-            Subtitle = "Squelette et muscles",
-            Image = "/images/skeleton.png",
-            Description = "Explore les os et les muscles qui soutiennent ton corps et te permettent de bouger.",
-            Reward = 30,
-            Status = "locked",
-            X = 89,
-            Y = 49
-        },
-        new BodyWorld
-        {
-            Name = "L'univers des cellules",
-            Subtitle = "Cellules et ADN",
-            Image = "/images/blood-cell.png",
-            Description = "Réduis-toi à une taille microscopique pour explorer les cellules, l'ADN et les composants du vivant.",
-            Reward = 40,
-            Status = "locked",
-            X = 90,
-            Y = 12
+            await Profiles.MarkBadgesSeenAsync(fresh);
+            foreach (var b in fresh) _queue.Enqueue(b);
+            await Task.Delay(500);
+            await ShowNextBadge();
         }
-    };
-
-    private BodyWorld _selectedWorld = new()
-    {
-        Name = "Les montagnes respiratoires",
-        Subtitle = "Système respiratoire",
-        Image = "/images/lungs.png",
-        Description = "Entre dans tes poumons et découvre comment ton corps récupère l'oxygène dont il a besoin.",
-        Reward = 25,
-        Status = "current"
-    };
-
-    private void SelectWorld(BodyWorld world)
-    {
-        _selectedWorld = world;
     }
 
-    private void ContinueAdventure()
+    private async Task ShowNextBadge()
     {
-        // Démonstration : cette action sera reliée à la page du module plus tard.
+        if (_queue.TryDequeue(out var next))
+        {
+            _celebrate = next;
+            StateHasChanged();
+            await Progress.PlayAsync("world");
+            await Progress.ConfettiAsync(true);
+        }
+        else
+        {
+            _celebrate = null;
+        }
     }
 
-    private class BodyWorld
+    private async Task NextBadge()
     {
-        public string Name { get; set; } = "";
-        public string Subtitle { get; set; } = "";
-        public string Image { get; set; } = "";
-        public string Description { get; set; } = "";
-        public int Reward { get; set; }
-        public string Status { get; set; } = "locked";
-        public double X { get; set; }
-        public double Y { get; set; }
+        await Progress.PlayAsync("close");
+        await ShowNextBadge();
+    }
+
+    private string AvatarPath(string id) =>
+        (ProfileService.Avatars.FirstOrDefault(a => a.Id == id) ?? ProfileService.Avatars[0]).Path;
+
+    private void StartEdit()
+    {
+        if (_p is null) return;
+        _nameInput = _p.Name;
+        _avatarInput = _p.Avatar.Id;
+        _editError = null;
+        _editing = true;
+    }
+
+    private void CancelEdit()
+    {
+        _editing = false;
+        _editError = null;
+    }
+
+    private async Task SaveEdit()
+    {
+        if (!await Profiles.SaveAsync(_nameInput, _avatarInput))
+        {
+            _editError = "Please type a name for your explorer.";
+            await Progress.PlayAsync("locked");
+            return;
+        }
+
+        _p = await Profiles.LoadAsync();
+        _editing = false;
+        _editError = null;
+        await Progress.PlayAsync("sparkle");
+        await Progress.ConfettiAsync(false);
+    }
+
+    private async Task OpenWorld(ProfileService.WorldSummary world)
+    {
+        if (!world.Unlocked)
+        {
+            _shake = world.Slug;
+            StateHasChanged();
+            await Task.Delay(600);
+            _shake = null;
+            return;
+        }
+        await Progress.PlayAsync("open");
+        Navigation.NavigateTo($"/module/{world.Slug}");
+    }
+
+    private void NextFact() => _factIndex = (_factIndex + 1) % Facts.Length;
+
+    private async Task Party()
+    {
+        await Progress.PlayAsync("world");
+        await Progress.ConfettiAsync(true);
     }
 }

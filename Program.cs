@@ -1,3 +1,4 @@
+
 using BodyQuest.Components;
 using BodyQuest.Data;
 using BodyQuest.Services;
@@ -5,27 +6,39 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+builder.Services
+    .AddRazorComponents()
+    .AddInteractiveServerComponents();
 
-// 1. Changed to UseMySql for XAMPP, and fixed the connection string name
+var connectionString =
+    builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException(
+        "The DefaultConnection connection string is missing."
+    );
+
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseMySql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("DefaultConnection"))
-    ));
+        connectionString,
+        ServerVersion.AutoDetect(connectionString)
+    )
+);
 
+// Application services
 builder.Services.AddScoped<ModuleService>();
-
+builder.Services.AddScoped<WorldProgressService>();
+builder.Services.AddScoped<ProfileService>();
 var app = builder.Build();
 
-// Apply migrations and seed the six modules on startup
+// Initialize database and seed initial content.
 using (var scope = app.Services.CreateScope())
 {
-    var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+    var factory = scope.ServiceProvider
+        .GetRequiredService<IDbContextFactory<AppDbContext>>();
+
     await using var db = await factory.CreateDbContextAsync();
 
-    // 2. Ensure the database is created before running migrations
-    await db.Database.EnsureCreatedAsync(); // or MigrateAsync() if you have migrations
+    await db.Database.EnsureCreatedAsync();
+
     await SeedData.InitializeAsync(db);
 }
 
@@ -39,6 +52,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
 
-app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
 
 app.Run();

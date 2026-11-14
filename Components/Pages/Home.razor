@@ -1,250 +1,431 @@
 @page "/"
+
 @inject ModuleService Modules
+@inject WorldProgressService Progress
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
 
-<PageTitle>BodyQuest — La grande aventure du corps</PageTitle>
+<PageTitle>BodyQuest - Adventure Map</PageTitle>
 
-<div class="bq-game">
-    <header class="bq-topbar">
-        <a class="bq-logo" href="/" aria-label="BodyQuest accueil">
-            <span class="bq-logo-mark">B!</span>
+<div class="gd-page">
+
+    @* sky *@
+    <div class="gd-sky" aria-hidden="true">
+        <div class="gd-sun" data-pop="1"><span class="gd-sun-core"></span></div>
+        <span class="gd-cloud gd-cloud-a"></span>
+        <span class="gd-cloud gd-cloud-b"></span>
+        <span class="gd-cloud gd-cloud-c"></span>
+        <div class="gd-balloon" data-pop="1">
+            <span class="gd-balloon-top"></span>
+            <span class="gd-balloon-basket"></span>
+        </div>
+        <span class="gd-bird gd-bird-a"></span>
+        <span class="gd-bird gd-bird-b"></span>
+    </div>
+
+    <header class="gd-header">
+        <a href="/" class="gd-logo" data-snd="tap">
+            <span class="gd-logo-mark">B!</span>
             <span>body<span>quest</span></span>
         </a>
 
-        <nav class="bq-nav">
-            <a class="selected" href="#world-map">Carte du monde</a>
-            <a href="#daily-mission">Mission du jour</a>
+        <nav class="gd-nav">
+            <a class="gd-nav-active" href="/" data-snd="tap">
+                <svg class="bq-i"><use href="#i-map" /></svg> Adventure map
+            </a>
+            <a href="/profile" data-snd="tap">
+                <svg class="bq-i"><use href="#i-user" /></svg> My profile
+            </a>
         </nav>
 
-        <div class="bq-player-pill">
-            <span class="player-avatar">★</span>
-            <span>Petit explorateur</span>
-            <span class="player-level">NIVEAU 1</span>
+        <div class="gd-tools">
+            <span class="gd-chip gd-chip-stars" title="Your stars">
+                <svg class="bq-i"><use href="#i-star" /></svg> @_stars
+            </span>
+            <button type="button" class="gd-tool @(_muted ? "is-off" : "")"
+                    aria-label="@(_muted ? "Turn sounds on" : "Turn sounds off")"
+                    title="Sound effects" @onclick="ToggleSound">
+                <svg class="bq-i"><use href="@(_muted ? "#i-speaker-off" : "#i-speaker")" /></svg>
+            </button>
+            <button type="button" class="gd-tool @(_music ? "is-on" : "")"
+                    aria-label="@(_music ? "Turn music off" : "Turn music on")"
+                    title="Music" @onclick="ToggleMusic">
+                <svg class="bq-i"><use href="#i-note" /></svg>
+            </button>
         </div>
     </header>
 
-    <main class="bq-main">
-        <section class="bq-hero">
-            <div class="bq-hero-spark spark-a">✦</div>
-            <div class="bq-hero-spark spark-b">✧</div>
-            <div class="bq-hero-copy">
-                <div class="bq-world-tag"><span></span> BIENVENUE DANS TON TERRAIN DE JEU</div>
-                <h1>Prêt pour une<br /><em>super aventure</em> ?</h1>
-                <p>
-                    Rétrécis-toi, enfile ta combinaison et pars explorer
-                    les incroyables secrets cachés dans ton corps !
-                </p>
-                <a class="bq-play-button" href="#world-map">
-                    <span class="play-icon">▶</span>
-                    C'EST PARTI !
-                </a>
-                <div class="bq-hero-footnote">
-                    <span class="tiny-star">✦</span>
-                    7 mondes merveilleux à découvrir
+    <main class="gd-main">
+
+        <section class="gd-hero">
+            <div class="gd-hero-card">
+                <span class="gd-eyebrow">WELCOME, EXPLORER!</span>
+                <h1>Ready for your <span>next discovery?</span></h1>
+                <p>Follow the garden path with Milo and unlock every world inside the human body.</p>
+
+                <div class="gd-hero-stats">
+                    <span><strong>@CompletedLessons</strong> / @TotalLessons lessons</span>
+                    <span><strong>@CompletedWorlds</strong> / @_modules.Count worlds</span>
+                    <span class="gd-rank">@Rank</span>
                 </div>
+
+                <div class="gd-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@OverallProgress">
+                    <div class="gd-bar-fill" style="width:@(OverallProgress)%"></div>
+                </div>
+
+                <button type="button" class="gd-cta" data-snd="pop" @onclick="ContinueAdventure"
+                        disabled="@(!_loaded || _modules.Count == 0 || _walking)">
+                    @(CompletedLessons == 0 ? "Start the adventure" : "Continue the adventure")
+                    <svg class="bq-i"><use href="#i-arrow" /></svg>
+                </button>
             </div>
 
-            <div class="bq-hero-stage">
-                <div class="bq-cloud cloud-one"></div>
-                <div class="bq-cloud cloud-two"></div>
-                <div class="bq-planet planet-one"></div>
-                <div class="bq-planet planet-two"></div>
-                <div class="bq-portal-ring"></div>
-                <img class="bq-portal-art" src="/images/portal.png" alt="" />
-                <img class="bq-mascot" src="/images/body-explorer.png"
-                     alt="Ton petit guide explorateur" />
-                <div class="speech-bubble">
-                    Coucou ! On part<br />à l'aventure ?
-                    <span class="bubble-tail"></span>
-                </div>
-                <div class="bq-hero-star star-one">✦</div>
-                <div class="bq-hero-star star-two">✧</div>
-                <div class="bq-hero-star star-three">✦</div>
+            <div class="gd-hero-milo">
+                <img src="/images/body-explorer.png" alt="Milo, the tiny explorer" />
+                <span class="gd-hero-bubble">Let's explore!</span>
             </div>
         </section>
 
-        <section class="bq-stats-strip" aria-label="Ton aventure">
-            <div class="bq-stat">
-                <span class="stat-icon stat-pink">★</span>
-                <span><strong>@_stars</strong><small>ÉTOILES GAGNÉES</small></span>
-            </div>
-            <div class="stat-divider"></div>
-            <div class="bq-stat">
-                <span class="stat-icon stat-blue">♡</span>
-                <span><strong>@(_modules?.Count ?? 0)</strong><small>MONDES À VISITER</small></span>
-            </div>
-            <div class="stat-divider"></div>
-            <div class="bq-stat">
-                <span class="stat-icon stat-yellow">✿</span>
-                <span><strong>NIVEAU 1</strong><small>APPRENTI SCIENTIFIQUE</small></span>
-            </div>
-        </section>
+        <div class="gd-heading">
+            <span class="gd-eyebrow">YOUR LEARNING JOURNEY</span>
+            <h2>The Body Garden</h2>
+            <p>Tap a world and Milo walks there. Tap Milo for a fun fact, and tap the flowers!</p>
+        </div>
 
-        <section class="bq-map-section" id="world-map">
-            <div class="bq-section-title">
-                <div>
-                    <div class="bq-kicker">CHOISIS TON PROCHAIN VOYAGE</div>
-                    <h2>La carte des <span>merveilles</span></h2>
-                    <p>Chaque monde cache des surprises. À toi de les découvrir !</p>
-                </div>
-                <div class="map-stamp"><span>GO!</span><small>EXPLORE<br />& LEARN</small></div>
-            </div>
+        <section class="gd-scene" id="gdScene">
 
-            <div class="bq-search-row">
-                <label class="bq-search">
-                    <span>⌕</span>
-                    <input type="text" placeholder="Cherche un monde..."
-                           @bind="_search" @bind:event="oninput" />
-                </label>
-                <span class="bq-map-hint">CHOISIS UN PORTAIL POUR COMMENCER <b>↴</b></span>
-            </div>
+            <GardenScene />
 
-            @if (_modules is null)
-            {
-                <div class="bq-loading">
-                    <div class="loading-orbit"></div>
-                    <strong>On prépare ton vaisseau...</strong>
-                    <span>Encore un tout petit instant !</span>
-                </div>
-            }
-            else if (!FilteredModules.Any())
-            {
-                <div class="bq-empty">
-                    <img src="/images/body-explorer.png" alt="" />
-                    <strong>Oups ! Ce monde est introuvable.</strong>
-                    <button type="button" @onclick="ResetSearch">Voir tous les mondes</button>
-                </div>
-            }
-            else
-            {
-                <div class="bq-world-grid">
-                    @foreach (var m in FilteredModules)
-                    {
-                        <a class="bq-world-card @GetCardClass(m.Slug)"
-                           href="@($"/module/{m.Slug}")">
-                            <div class="world-card-top">
-                                <span class="world-number">MONDE @((FilteredModules.IndexOf(m) + 1).ToString("00"))</span>
-                                <span class="world-card-star">✦</span>
-                            </div>
-                            <div class="world-art-wrap">
-                                <div class="world-art-orbit"></div>
-<img src="@GetImage(m.Slug, m.Title)" alt="@m.Title" loading="lazy" />                                <span class="world-go">JOUER ! <b>→</b></span>
-                            </div>
-                            <div class="world-card-info">
-                                <h3>@m.Title</h3>
-                                <p>@m.Description</p>
-                                <div class="world-card-bottom">
-                                    <span>ENTRER DANS CE MONDE</span>
-                                    <span class="world-progress-dots"><i></i><i></i><i></i></span>
-                                </div>
-                            </div>
-                        </a>
-                    }
-                </div>
-            }
-        </section>
+            <div class="gd-layer">
 
-        <section class="bq-daily" id="daily-mission">
-            <div class="daily-confetti confetti-one">✦</div>
-            <div class="daily-confetti confetti-two">✧</div>
-            <div class="daily-copy">
-                <div class="daily-label"><span>✦</span> MINI-MISSION DU JOUR</div>
-                <h2>Le savais-tu ?</h2>
-                <p>Ton cœur est un muscle extraordinaire : il travaille sans s'arrêter pour envoyer le sang partout dans ton corps.</p>
-                @if (!_factRevealed)
+                <span class="gd-tag gd-tag-start" style="left:50%;top:@(StartTop)%">START</span>
+
+                @if (_loaded)
                 {
-                    <button class="daily-button" type="button" @onclick="RevealFact">
-                        DÉCOUVRIR LA SURPRISE <span>→</span>
-                    </button>
+                    for (var i = 0; i < NodeCount; i++)
+                    {
+                        var index = i;
+                        var world = _modules[index];
+                        var art = WorldArt.For(world.Slug);
+                        var unlocked = IsUnlocked(index);
+                        var done = IsCompleted(index);
+                        var current = unlocked && !done;
+                        var lessons = world.Lessons.Count;
+                        var finished = GetCompletedLessons(world);
+
+                        <div class="@NodeClass(index, unlocked, done, current)"
+                             style="left:@(GardenLayout.Left(index));top:@(GardenLayout.Top(index));--c:@(art.Accent);--soft:@(art.Soft)">
+
+                            @if (current)
+                            {
+                                <span class="gd-here">Start here</span>
+                            }
+
+                            <button type="button" class="gd-bubble" data-snd="pop"
+                                    aria-label="@(unlocked ? "Open " + world.Title : world.Title + " is locked")"
+                                    @onclick="() => OpenWorld(index)">
+                                <span class="gd-bubble-ring"></span>
+                                <img src="@art.Image" alt="" />
+
+                                @if (!unlocked)
+                                {
+                                    <span class="gd-fog gd-fog-a"></span>
+                                    <span class="gd-fog gd-fog-b"></span>
+                                    <span class="gd-padlock"><svg class="bq-i"><use href="#i-lock" /></svg></span>
+                                }
+                                @if (done)
+                                {
+                                    <span class="gd-done"><svg class="bq-i"><use href="#i-check" /></svg></span>
+                                }
+                            </button>
+
+                            @if (done)
+                            {
+                                <span class="gd-medal" aria-label="@WorldStars(world) stars">
+                                    @for (var s = 1; s <= 3; s++)
+                                    {
+                                        <svg class="bq-i @(s <= WorldStars(world) ? "on" : "")"><use href="#i-star" /></svg>
+                                    }
+                                </span>
+                            }
+
+                            <div class="gd-sign">
+                                <small>WORLD @(index + 1)</small>
+                                <strong>@world.Title</strong>
+                                <span class="gd-pips" aria-label="@finished of @lessons lessons">
+                                    @for (var p = 0; p < lessons; p++)
+                                    {
+                                        <i class="@(p < finished ? "on" : "")"></i>
+                                    }
+                                </span>
+                            </div>
+                        </div>
+                    }
+                }
+
+                <div class="@(AllDone ? "gd-chest-tag is-open" : "gd-chest-tag")"
+                     style="left:50%;top:@(FinishTop)%">
+                    <span>@(AllDone ? "You did it!" : "Treasure")</span>
+                </div>
+
+                <span class="gd-butterfly gd-bf-a" data-pop="1"></span>
+                <span class="gd-butterfly gd-bf-b" data-pop="1"></span>
+                <span class="gd-butterfly gd-bf-c" data-pop="1"></span>
+
+                <button type="button" id="gdMilo" class="gd-milo" aria-label="Milo - tap for a fun fact">
+                    <span class="gd-milo-say" id="gdMiloSay" role="status"></span>
+                    <img src="/images/body-explorer.png" alt="Milo" />
+                    <span class="gd-milo-shadow"></span>
+                </button>
+            </div>
+        </section>
+
+        <aside class="gd-tip">
+            <svg class="bq-i"><use href="#i-bulb" /></svg>
+            <div>
+                <strong>One step at a time!</strong>
+                <p>Finish every lesson in a world to open the next one. Answer the quick check to earn up to three stars per lesson.</p>
+            </div>
+
+            <div class="gd-reset">
+                @if (!_confirmReset)
+                {
+                    <button type="button" class="gd-link" @onclick="() => _confirmReset = true">Start over</button>
                 }
                 else
                 {
-                    <div class="daily-reward">
-                        <span class="reward-star">★</span>
-                        <span>Bravo ! Tu viens de découvrir un fait incroyable !</span>
-                    </div>
+                    <span>Erase all stars?</span>
+                    <button type="button" class="gd-link danger" @onclick="ResetAll">Yes, erase</button>
+                    <button type="button" class="gd-link" @onclick="() => _confirmReset = false">Keep them</button>
                 }
             </div>
-            <div class="daily-art">
-                <img src="/images/heart.png" alt="Petit cœur souriant" />
-                <span class="heart-spark spark-left">✦</span>
-                <span class="heart-spark spark-right">✧</span>
-            </div>
-        </section>
+        </aside>
     </main>
 
-    <footer class="bq-footer">
-        <a class="bq-logo" href="/"><span class="bq-logo-mark">B!</span><span>body<span>quest</span></span></a>
-        <p>Les petites curiosités font les grandes découvertes !</p>
-        <span>FAIT POUR LES PETITS EXPLORATEURS</span>
-    </footer>
+    @if (_toast is not null)
+    {
+        <div class="gd-toast" role="status">
+            <svg class="bq-i"><use href="#i-star" /></svg>
+            <span>@_toast</span>
+        </div>
+    }
 </div>
 
 @code {
-    private List<BodyModule>? _modules;
-    private string _search = "";
-    private int _stars = 0;
-    private bool _factRevealed;
+    private List<BodyModule> _modules = new();
+    private HashSet<string> _completed = new(StringComparer.OrdinalIgnoreCase);
 
-    private List<BodyModule> FilteredModules =>
-        _modules?
-            .Where(m =>
-                m.Title.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
-                m.Description.Contains(_search, StringComparison.OrdinalIgnoreCase))
-            .ToList() ?? new();
+    private bool _loaded, _mapReady, _walking, _muted, _music, _confirmReset;
+    private int _stars;
+    private Dictionary<string, int> _starMap = new(StringComparer.OrdinalIgnoreCase);
+    private int _shake = -1;
+    private int _celebrate = -1;
+    private string? _toast;
 
-    private void ResetSearch() => _search = "";
+    private int NodeCount => Math.Min(_modules.Count, GardenLayout.Nodes.Length);
+    private int TotalLessons => _modules.Sum(m => m.Lessons.Count);
+    private int CompletedLessons => _modules.Sum(GetCompletedLessons);
+    private int CompletedWorlds => Enumerable.Range(0, _modules.Count).Count(IsCompleted);
+    private bool AllDone => _modules.Count > 0 && CompletedWorlds == _modules.Count;
 
-    private void RevealFact()
+    private int OverallProgress => TotalLessons == 0
+        ? 0 : (int)Math.Round(Math.Min(CompletedLessons, TotalLessons) * 100.0 / TotalLessons);
+
+    private int CurrentIndex
     {
-        if (!_factRevealed)
+        get
         {
-            _factRevealed = true;
-            _stars += 1;
+            for (var i = 0; i < _modules.Count; i++)
+                if (!IsCompleted(i)) return i;
+            return _modules.Count;
         }
     }
 
-    private string GetCardClass(string slug) => slug.ToLowerInvariant() switch
+    private string StartTop => (120 / GardenLayout.Height * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+    private string FinishTop => ((GardenLayout.Finish.Y - 55) / GardenLayout.Height * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+
+    private string Rank => OverallProgress switch
     {
-        "brain" => "world-brain",
-        "heart" => "world-heart",
-        "lungs" => "world-lungs",
-        "digestive-system" => "world-digestive",
-        "nervous-system" => "world-nervous",
-        "skeleton" => "world-skeleton",
-        "muscular-system" => "world-muscles",
-        _ => "world-default"
+        0 => "Curious Cadet",
+        < 25 => "Young Explorer",
+        < 50 => "Body Scout",
+        < 75 => "Super Scientist",
+        < 100 => "Anatomy Ace",
+        _ => "Body Hero"
     };
-
-   private string GetImage(string? slug, string? title)
-{
-    var key = $"{slug} {title}".ToLowerInvariant();
-
-    if (key.Contains("brain") || key.Contains("cerveau"))
-        return "/images/brain.png";
-
-    if (key.Contains("heart") || key.Contains("coeur") || key.Contains("cœur"))
-        return "/images/heart.png";
-
-    if (key.Contains("lung") || key.Contains("poumon") || key.Contains("respiration"))
-        return "/images/lungs.png";
-
-    if (key.Contains("digest") || key.Contains("digestion"))
-        return "/images/digestive.png";
-
-    if (key.Contains("nerv") || key.Contains("neurone"))
-        return "/images/neuron.png";
-
-    if (key.Contains("skeleton") || key.Contains("os") || key.Contains("squelette"))
-        return "/images/skeleton.png";
-
-    if (key.Contains("muscle") || key.Contains("musculaire"))
-        return "/images/skeleton.png";
-
-    return "/images/blood-cell.png";
-}
 
     protected override async Task OnInitializedAsync()
     {
         _modules = await Modules.GetAllAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _completed = await Progress.GetCompletedAsync();
+            _starMap = await Progress.GetStarsAsync();
+            _stars = await Progress.GetTotalStarsAsync();
+            _muted = await Progress.IsMutedAsync();
+            _loaded = true;
+            StateHasChanged();
+            return;
+        }
+
+        if (_loaded && !_mapReady && NodeCount > 0)
+        {
+            _mapReady = true;
+            await InitMapAsync();
+        }
+    }
+
+    private async Task InitMapAsync()
+    {
+        try
+        {
+            var nodes = Enumerable.Range(0, NodeCount)
+                .Select(i => new { x = GardenLayout.Nodes[i].X, y = GardenLayout.Nodes[i].Y })
+                .ToArray();
+            var finish = new { x = GardenLayout.Finish.X, y = GardenLayout.Finish.Y };
+
+            var current = Math.Min(CurrentIndex, NodeCount);
+            var stored = Math.Min(await Progress.GetMiloStopAsync(), current);
+
+            var ok = await JS.InvokeAsync<bool>("bodyQuestWorlds.mapInit",
+                "bqPath", "gdMilo", "gdMiloSay", "gdScene", nodes, finish, stored);
+            if (!ok) return;
+
+            if (stored < current)
+            {
+                // The child came back after finishing a world: Milo walks to the newly opened place.
+                _walking = true;
+                await Task.Delay(900);
+                await JS.InvokeVoidAsync("bodyQuestWorlds.walkTo", current);
+                await Progress.SetMiloStopAsync(current);
+                _walking = false;
+                StateHasChanged();
+
+                if (current >= NodeCount)
+                {
+                    await Celebrate("Every world explored. You are a Body Hero!", "world", true);
+                }
+                else
+                {
+                    _celebrate = current;
+                    await Celebrate($"New world open: {_modules[current].Title}", "world", true);
+                    _celebrate = -1;
+                }
+            }
+            else
+            {
+                await Task.Delay(300);
+                await JS.InvokeVoidAsync("bodyQuestWorlds.scrollToMilo");
+                if (current >= NodeCount && AllDone)
+                    await JS.InvokeVoidAsync("bodyQuestWorlds.miloSay", "We explored everything together!", 4000);
+            }
+        }
+        catch (JSException) { _walking = false; }
+        catch (JSDisconnectedException) { }
+        catch (InvalidOperationException) { _walking = false; }
+    }
+
+    private async Task Celebrate(string message, string sound, bool bigConfetti)
+    {
+        _toast = message;
+        StateHasChanged();
+        await Progress.PlayAsync(sound);
+        await Progress.ConfettiAsync(bigConfetti);
+        await Task.Delay(4200);
+        _toast = null;
+        StateHasChanged();
+    }
+
+    private bool IsLessonDone(BodyModule m, Lesson l) => _completed.Contains(WorldProgressService.MakeKey(m.Slug, l.Id));
+    private int GetCompletedLessons(BodyModule m) => m.Lessons.Count(l => IsLessonDone(m, l));
+    private bool IsCompleted(int index) =>
+        index >= 0 && index < _modules.Count && _modules[index].Lessons.Count > 0 &&
+        _modules[index].Lessons.All(l => IsLessonDone(_modules[index], l));
+    private bool IsUnlocked(int index) => index == 0 || IsCompleted(index - 1);
+
+    private int WorldStars(BodyModule m)
+    {
+        // Average of the stars earned in the world's lessons (lessons finished before stars existed count as 1).
+        if (m.Lessons.Count == 0) return 0;
+        var total = m.Lessons.Sum(l => _starMap.TryGetValue(WorldProgressService.MakeKey(m.Slug, l.Id), out var s) ? s : 1);
+        return Math.Clamp((int)Math.Round(total / (double)m.Lessons.Count), 1, 3);
+    }
+
+    private string NodeClass(int index, bool unlocked, bool done, bool current)
+    {
+        var c = "gd-node";
+        c += done ? " is-done" : unlocked ? " is-open" : " is-locked";
+        if (current) c += " is-current";
+        if (_shake == index) c += " is-shake";
+        if (_celebrate == index) c += " is-unlocking";
+        c += index % 2 == 0 ? " side-left" : " side-right";
+        return c;
+    }
+
+    private async Task ContinueAdventure()
+    {
+        if (!_loaded || _walking || _modules.Count == 0) return;
+        var current = CurrentIndex;
+        if (current >= NodeCount)
+        {
+            await Progress.PlayAsync("world");
+            await Progress.ConfettiAsync(true);
+            await JS.InvokeVoidAsync("bodyQuestWorlds.miloSay", "You explored every world!", 4000);
+            return;
+        }
+        await OpenWorld(current);
+    }
+
+    private async Task OpenWorld(int index)
+    {
+        if (_walking || index < 0 || index >= NodeCount) return;
+
+        if (!IsUnlocked(index))
+        {
+            _shake = index;
+            await Progress.PlayAsync("locked");
+            try
+            {
+                await JS.InvokeVoidAsync("bodyQuestWorlds.miloSay",
+                    $"Finish {_modules[index - 1].Title} first!", 3200);
+            }
+            catch (JSException) { }
+            StateHasChanged();
+            await Task.Delay(650);
+            _shake = -1;
+            return;
+        }
+
+        _walking = true;
+        try
+        {
+            await JS.InvokeVoidAsync("bodyQuestWorlds.walkTo", index);
+            await Progress.SetMiloStopAsync(index);
+            await Progress.PlayAsync("open");
+        }
+        catch (JSException) { }
+        catch (JSDisconnectedException) { return; }
+
+        Navigation.NavigateTo($"/module/{_modules[index].Slug}");
+    }
+
+    private async Task ToggleSound()
+    {
+        _muted = await Progress.SetMutedAsync(!_muted);
+    }
+
+    private async Task ToggleMusic()
+    {
+        _music = await Progress.SetMusicAsync(!_music);
+    }
+
+    private async Task ResetAll()
+    {
+        await Progress.ResetAsync();
+        Navigation.NavigateTo("/", forceLoad: true);
     }
 }

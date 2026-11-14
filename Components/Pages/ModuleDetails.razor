@@ -1,0 +1,551 @@
+@page "/module/{Slug}"
+
+@implements IAsyncDisposable
+
+@inject ModuleService Modules
+@inject WorldProgressService Progress
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>BodyQuest - @(_module?.Title ?? "Learning world")</PageTitle>
+
+@{
+    var art = WorldArt.For(_module?.Slug);
+}
+
+<div class="wd-page" style="--c:@(art.Accent);--soft:@(art.Soft);--sky1:@(art.SkyTop);--sky2:@(art.SkyBottom)">
+
+    <div class="wd-sky" aria-hidden="true">
+        <span class="wd-cloud wd-cloud-a"></span>
+        <span class="wd-cloud wd-cloud-b"></span>
+        <span class="wd-cloud wd-cloud-c"></span>
+        <span class="wd-butterfly wd-bf-a" data-pop="1"></span>
+        <span class="wd-butterfly wd-bf-b" data-pop="1"></span>
+    </div>
+
+    <header class="wd-header">
+        <a href="/" class="wd-logo" data-snd="tap">
+            <span class="wd-logo-mark">B!</span>
+            <span>body<span>quest</span></span>
+        </a>
+
+        <div class="wd-tools">
+            <span class="wd-chip-stars" title="Your stars">
+                <svg class="bq-i"><use href="#i-star" /></svg> @_stars
+            </span>
+            <button type="button" class="wd-tool @(_muted ? "is-off" : "")" title="Sound effects"
+                    aria-label="@(_muted ? "Turn sounds on" : "Turn sounds off")" @onclick="ToggleSound">
+                <svg class="bq-i"><use href="@(_muted ? "#i-speaker-off" : "#i-speaker")" /></svg>
+            </button>
+            <a href="/" class="wd-back" data-snd="tap">
+                <svg class="bq-i"><use href="#i-back" /></svg> Adventure map
+            </a>
+        </div>
+    </header>
+
+    @if (_module is null)
+    {
+        <div class="wd-message">
+            <img src="/images/portal.png" alt="" />
+            <h2>World not found</h2>
+            <p>We could not find this learning world.</p>
+            <a href="/" class="wd-btn">Back to the adventure map</a>
+        </div>
+    }
+    else if (!_loaded)
+    {
+        <div class="wd-message">
+            <img src="/images/body-explorer.png" alt="" class="wd-bob" />
+            <h2>Preparing your adventure...</h2>
+        </div>
+    }
+    else if (!_unlocked)
+    {
+        <div class="wd-message">
+            <div class="wd-lock-art"><img src="@art.Image" alt="" /><span><svg class="bq-i"><use href="#i-lock" /></svg></span></div>
+            <h2>This world is locked</h2>
+            <p>Finish every lesson in the previous world to open it.</p>
+            <a href="/" class="wd-btn" data-snd="tap">Back to the adventure map</a>
+        </div>
+    }
+    else
+    {
+        <main class="wd-main">
+
+            <section class="wd-intro">
+                <div class="wd-intro-art">
+                    <img src="@art.Image" alt="@_module.Title" />
+                    <span class="wd-spark wd-spark-a"></span>
+                    <span class="wd-spark wd-spark-b"></span>
+                </div>
+
+                <div class="wd-intro-text">
+                    <span class="wd-eyebrow">WORLD @(_worldNumber)</span>
+                    <h1>@_module.Title</h1>
+                    <p class="wd-tagline">@art.Tagline</p>
+                    <p>@_module.Description</p>
+
+                    <div class="wd-progress">
+                        <div class="wd-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@Percent">
+                            <div class="wd-bar-fill" style="width:@(Percent)%"></div>
+                        </div>
+                        <span><strong>@CompletedCount</strong> / @_module.Lessons.Count lessons</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="wd-stones" aria-label="Lessons">
+                @for (var i = 0; i < _module.Lessons.Count; i++)
+                {
+                    var index = i;
+                    var lesson = _module.Lessons[index];
+                    var done = IsDone(lesson);
+                    var open = CanOpen(index);
+
+                    <div class="wd-stone-wrap">
+                        @if (index > 0)
+                        {
+                            <span class="wd-stone-link @(IsDone(_module.Lessons[index - 1]) ? "is-done" : "")"></span>
+                        }
+                        <button type="button"
+                                class="wd-stone @(done ? "is-done" : "") @(index == _active ? "is-active" : "") @(!open ? "is-locked" : "")"
+                                data-snd="@(open ? "pop" : "locked")"
+                                aria-label="@lesson.Title" aria-current="@(index == _active ? "step" : null)"
+                                @onclick="() => OpenLesson(index)">
+                            @if (done)
+                            {
+                                <svg class="bq-i"><use href="#i-check" /></svg>
+                            }
+                            else if (!open)
+                            {
+                                <svg class="bq-i"><use href="#i-lock" /></svg>
+                            }
+                            else
+                            {
+                                <span>@(index + 1)</span>
+                            }
+                        </button>
+                        <span class="wd-stone-label">@lesson.Title</span>
+                        @if (done)
+                        {
+                            <span class="wd-stone-stars">
+                                @for (var s = 1; s <= 3; s++)
+                                {
+                                    <svg class="bq-i @(s <= StarsFor(lesson) ? "on" : "")"><use href="#i-star" /></svg>
+                                }
+                            </span>
+                        }
+                    </div>
+                }
+            </section>
+
+            @if (_active >= 0 && _active < _module.Lessons.Count)
+            {
+                var lesson = _module.Lessons[_active];
+                var extra = LessonExtras.For(_module.Slug, lesson.SortOrder);
+                var done = IsDone(lesson);
+                var image = extra?.Image ?? art.Mascot;
+
+                <article class="wd-card" @key="lesson.Id">
+
+                    <div class="wd-card-top">
+                        <span class="wd-pill">LESSON @(_active + 1) OF @_module.Lessons.Count</span>
+                        @if (done)
+                        {
+                            <span class="wd-pill wd-pill-done"><svg class="bq-i"><use href="#i-check" /></svg> Learned</span>
+                        }
+                    </div>
+
+                    <div class="wd-card-body">
+                        <div class="wd-art">
+                            <img class="@(image.EndsWith(".webp") ? "is-round" : "")" src="@image" alt="" />
+                            <span class="wd-spark wd-spark-a"></span>
+                            <span class="wd-spark wd-spark-b"></span>
+                        </div>
+
+                        <div class="wd-text">
+                            <h2>@lesson.Title</h2>
+                            <p class="wd-explain">@lesson.Content</p>
+
+                            <button type="button" class="wd-listen @(_speaking ? "is-on" : "")" data-snd="tap" @onclick="() => ToggleListen(lesson, extra)">
+                                <svg class="bq-i"><use href="#i-speaker" /></svg>
+                                @(_speaking ? "Stop" : "Listen to Milo")
+                            </button>
+                        </div>
+                    </div>
+
+                    @if (extra is not null)
+                    {
+                        <div class="wd-tiles">
+                            <div class="wd-tile wd-tile-remember">
+                                <small>REMEMBER</small>
+                                <strong>@extra.Remember</strong>
+                            </div>
+
+                            <button type="button" class="wd-tile wd-tile-fact @(_factOpen ? "is-open" : "")"
+                                    data-snd="@(_factOpen ? "close" : "open")" @onclick="ToggleFact" aria-expanded="@(_factOpen ? "true" : "false")">
+                                <small>FUN FACT</small>
+                                @if (_factOpen)
+                                {
+                                    <strong>@extra.FunFact</strong>
+                                }
+                                else
+                                {
+                                    <strong class="wd-tap">Tap to reveal a surprise</strong>
+                                }
+                            </button>
+
+                            <div class="wd-tile wd-tile-try">
+                                <small>TRY IT</small>
+                                <strong>@extra.TryIt</strong>
+                            </div>
+                        </div>
+                    }
+
+                    @if (done)
+                    {
+                        <div class="wd-success">
+                            <img src="/images/body-explorer.png" alt="" />
+                            <div>
+                                <strong>Great job, explorer!</strong>
+                                <p>You already learned this lesson. You can read it again whenever you like.</p>
+                            </div>
+                        </div>
+                    }
+                    else if (extra is not null)
+                    {
+                        <div class="wd-quiz">
+                            <div class="wd-quiz-head">
+                                <span class="wd-pill wd-pill-quiz">QUICK CHECK</span>
+                                <span class="wd-quiz-stars" aria-label="@PotentialStars stars available">
+                                    @for (var s = 1; s <= 3; s++)
+                                    {
+                                        <svg class="bq-i @(s <= (_checkPassed ? _earned : PotentialStars) ? "on" : "")"><use href="#i-star" /></svg>
+                                    }
+                                </span>
+                            </div>
+                            <h3>@extra.Question</h3>
+
+                            <div class="wd-options">
+                                @for (var o = 0; o < _order.Length; o++)
+                                {
+                                    var shown = o;
+                                    var original = _order[shown];
+                                    var isRight = original == extra.CorrectIndex;
+                                    var wrong = _wrong.Contains(shown);
+
+                                    <button type="button"
+                                            class="wd-option @(_checkPassed && isRight ? "is-right" : "") @(wrong ? "is-wrong" : "")"
+                                            disabled="@(_checkPassed || wrong)"
+                                            data-snd="tap"
+                                            @onclick="() => PickAnswer(shown, extra)">
+                                        <i>@((char)('A' + shown))</i>
+                                        <span>@extra.Options[original]</span>
+                                    </button>
+                                }
+                            </div>
+
+                            @if (_checkPassed)
+                            {
+                                <p class="wd-feedback is-good">Correct! @extra.Why</p>
+                            }
+                            else if (_wrong.Count > 0)
+                            {
+                                <p class="wd-feedback is-try">Not quite. Read the lesson again and try another answer.</p>
+                            }
+                        </div>
+
+                        <button type="button" class="wd-complete" disabled="@(!_checkPassed || _saving)" data-snd="pop" @onclick="() => CompleteLesson(lesson, extra)">
+                            @(_saving ? "Saving..." : "I learned this!")
+                            <svg class="bq-i"><use href="#i-check" /></svg>
+                        </button>
+                        @if (!_checkPassed)
+                        {
+                            <p class="wd-hint">Answer the quick check to finish this lesson.</p>
+                        }
+                    }
+                    else
+                    {
+                        <button type="button" class="wd-complete" disabled="@_saving" data-snd="pop" @onclick="() => CompleteLesson(lesson, extra)">
+                            I learned this!
+                            <svg class="bq-i"><use href="#i-check" /></svg>
+                        </button>
+                    }
+
+                    @if (done)
+                    {
+                        <div class="wd-nav">
+                            @if (_active > 0)
+                            {
+                                <button type="button" class="wd-btn wd-btn-ghost" data-snd="tap" @onclick="() => OpenLesson(_active - 1)">
+                                    <svg class="bq-i"><use href="#i-back" /></svg> Previous
+                                </button>
+                            }
+                            @if (_active < _module.Lessons.Count - 1)
+                            {
+                                <button type="button" class="wd-btn" data-snd="pop" @onclick="() => OpenLesson(_active + 1)">
+                                    Next lesson <svg class="bq-i"><use href="#i-arrow" /></svg>
+                                </button>
+                            }
+                            else
+                            {
+                                <a href="/" class="wd-btn" data-snd="pop">
+                                    Back to the map <svg class="bq-i"><use href="#i-arrow" /></svg>
+                                </a>
+                            }
+                        </div>
+                    }
+                </article>
+            }
+
+            @if (_justFinished is not null)
+            {
+                <div class="wd-reward" role="status">
+                    <svg class="bq-i"><use href="#i-star" /></svg>
+                    <span>@_justFinished</span>
+                </div>
+            }
+        </main>
+    }
+
+    @if (_celebrating && _module is not null)
+    {
+        <div class="wd-overlay" @onclick="CloseCelebration">
+            <div class="wd-modal" @onclick:stopPropagation="true">
+                <div class="wd-modal-art">
+                    <img src="@art.Image" alt="" />
+                    <span class="wd-spark wd-spark-a"></span>
+                    <span class="wd-spark wd-spark-b"></span>
+                </div>
+                <span class="wd-eyebrow">WORLD COMPLETED</span>
+                <h2>You mastered @_module.Title!</h2>
+                <div class="wd-modal-stars">
+                    @for (var s = 1; s <= 3; s++)
+                    {
+                        <svg class="bq-i @(s <= WorldStars ? "on" : "")"><use href="#i-star" /></svg>
+                    }
+                </div>
+                <p>
+                    @if (_nextWorldTitle is not null)
+                    {
+                        <text>A new world is waiting: <strong>@_nextWorldTitle</strong></text>
+                    }
+                    else
+                    {
+                        <text>You explored every world. You are a Body Hero!</text>
+                    }
+                </p>
+                <div class="wd-modal-actions">
+                    <button type="button" class="wd-btn wd-btn-ghost" @onclick="CloseCelebration">Read again</button>
+                    <a href="/" class="wd-btn" data-snd="pop">To the adventure map <svg class="bq-i"><use href="#i-arrow" /></svg></a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Slug { get; set; } = string.Empty;
+
+    private BodyModule? _module;
+    private List<BodyModule> _allModules = new();
+    private HashSet<string> _completed = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, int> _starMap = new(StringComparer.OrdinalIgnoreCase);
+
+    private bool _loaded, _unlocked, _saving, _muted, _speaking, _factOpen, _checkPassed, _celebrating;
+    private int _active = -1, _worldNumber, _stars, _earned;
+    private int[] _order = Array.Empty<int>();
+    private readonly HashSet<int> _wrong = new();
+    private string? _nextWorldTitle, _justFinished;
+    private int _speakToken;
+
+    private int CompletedCount => _module?.Lessons.Count(IsDone) ?? 0;
+    private int Percent => _module is null || _module.Lessons.Count == 0
+        ? 0 : (int)Math.Round(CompletedCount * 100.0 / _module.Lessons.Count);
+    private int PotentialStars => Math.Max(1, 3 - _wrong.Count);
+    private int WorldStars => _module is null || _module.Lessons.Count == 0 ? 0
+        : Math.Clamp((int)Math.Round(_module.Lessons.Average(StarsFor)), 1, 3);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loaded = false;
+        _unlocked = false;
+        _active = -1;
+        _celebrating = false;
+        _justFinished = null;
+        _allModules = await Modules.GetAllAsync();
+        _module = await Modules.GetBySlugAsync(Slug);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_loaded || _module is null) return;
+
+        _completed = await Progress.GetCompletedAsync();
+        _starMap = await Progress.GetStarsAsync();
+        _stars = await Progress.GetTotalStarsAsync();
+        _muted = await Progress.IsMutedAsync();
+
+        var idx = _allModules.FindIndex(m => m.Slug == _module.Slug);
+        _worldNumber = idx + 1;
+        _unlocked = idx == 0 || (idx > 0 && AllDone(_allModules[idx - 1]));
+        _loaded = true;
+
+        if (_unlocked)
+        {
+            var first = _module.Lessons.FindIndex(l => !IsDone(l));
+            StartLesson(first >= 0 ? first : 0);
+        }
+
+        StateHasChanged();
+    }
+
+    private bool AllDone(BodyModule m) =>
+        m.Lessons.Count > 0 && m.Lessons.All(l => _completed.Contains(WorldProgressService.MakeKey(m.Slug, l.Id)));
+
+    private bool IsDone(Lesson l) =>
+        _module is not null && _completed.Contains(WorldProgressService.MakeKey(_module.Slug, l.Id));
+
+    private int StarsFor(Lesson l) =>
+        _module is not null && _starMap.TryGetValue(WorldProgressService.MakeKey(_module.Slug, l.Id), out var s) ? s : 1;
+
+    private bool CanOpen(int index) =>
+        _module is not null && index >= 0 && index < _module.Lessons.Count &&
+        (index == 0 || IsDone(_module.Lessons[index - 1]));
+
+    private void StartLesson(int index)
+    {
+        _active = index;
+        _factOpen = false;
+        _checkPassed = false;
+        _earned = 0;
+        _wrong.Clear();
+        _justFinished = null;
+        StopSpeakingQuietly();
+
+        // Shuffle the answers the same way every time for a given lesson.
+        var lesson = _module!.Lessons[index];
+        var extra = LessonExtras.For(_module.Slug, lesson.SortOrder);
+        _order = extra is null ? Array.Empty<int>() : Enumerable.Range(0, extra.Options.Length).ToArray();
+        var rng = new Random(lesson.Id * 31 + 7);
+        for (var i = _order.Length - 1; i > 0; i--)
+        {
+            var j = rng.Next(i + 1);
+            (_order[i], _order[j]) = (_order[j], _order[i]);
+        }
+    }
+
+    private void OpenLesson(int index)
+    {
+        if (!CanOpen(index)) return;
+        StartLesson(index);
+    }
+
+    private void ToggleFact() => _factOpen = !_factOpen;
+
+    private async Task PickAnswer(int shown, LessonExtras.Extra extra)
+    {
+        if (_checkPassed) return;
+
+        if (_order[shown] == extra.CorrectIndex)
+        {
+            _checkPassed = true;
+            _earned = PotentialStars;
+            await Progress.PlayAsync("sparkle");
+            await Progress.ConfettiAsync(false);
+        }
+        else
+        {
+            _wrong.Add(shown);
+            await Progress.PlayAsync("locked");
+        }
+    }
+
+    private async Task CompleteLesson(Lesson lesson, LessonExtras.Extra? extra)
+    {
+        if (_saving || _module is null || !CanOpen(_active) || IsDone(lesson)) return;
+        if (extra is not null && !_checkPassed) return;
+
+        _saving = true;
+        try
+        {
+            var stars = extra is null ? 1 : Math.Max(1, _earned);
+            await Progress.MarkCompletedAsync(_module.Slug, lesson.Id, stars);
+            _completed = await Progress.GetCompletedAsync();
+            _starMap = await Progress.GetStarsAsync();
+            _stars = await Progress.GetTotalStarsAsync();
+
+            if (AllDone(_module))
+            {
+                var idx = _allModules.FindIndex(m => m.Slug == _module.Slug);
+                _nextWorldTitle = idx >= 0 && idx < _allModules.Count - 1 ? _allModules[idx + 1].Title : null;
+                _celebrating = true;
+                await Progress.PlayAsync("world");
+                await Progress.ConfettiAsync(true);
+            }
+            else
+            {
+                _justFinished = $"+{stars} star{(stars == 1 ? "" : "s")}! Lesson learned.";
+                await Progress.PlayCompletionSoundAsync();
+                await Progress.ConfettiAsync(false);
+            }
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task CloseCelebration()
+    {
+        _celebrating = false;
+        await Progress.PlayAsync("close");
+    }
+
+    private async Task ToggleSound() => _muted = await Progress.SetMutedAsync(!_muted);
+
+    private async Task ToggleListen(Lesson lesson, LessonExtras.Extra? extra)
+    {
+        var token = ++_speakToken;
+        if (_speaking)
+        {
+            _speaking = false;
+            await SafeJs(() => JS.InvokeVoidAsync("bodyQuestWorlds.stopSpeaking").AsTask());
+            return;
+        }
+
+        var text = $"{lesson.Title}. {lesson.Content} {extra?.Remember}";
+        var ok = await JS.InvokeAsync<bool>("bodyQuestWorlds.speak", text, "fr-FR");
+        if (!ok) return;
+
+        _speaking = true;
+        StateHasChanged();
+        // Speech has no "finished" callback here, so the button resets after the estimated reading time.
+        await Task.Delay(Math.Clamp(text.Length * 75, 2500, 30000));
+        if (token == _speakToken)
+        {
+            _speaking = false;
+            StateHasChanged();
+        }
+    }
+
+    private void StopSpeakingQuietly()
+    {
+        _speaking = false;
+        _speakToken++;
+        _ = SafeJs(() => JS.InvokeVoidAsync("bodyQuestWorlds.stopSpeaking").AsTask());
+    }
+
+    private static async Task SafeJs(Func<Task> call)
+    {
+        try { await call(); }
+        catch (JSException) { }
+        catch (JSDisconnectedException) { }
+        catch (InvalidOperationException) { }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await SafeJs(() => JS.InvokeVoidAsync("bodyQuestWorlds.stopSpeaking").AsTask());
+    }
+}
