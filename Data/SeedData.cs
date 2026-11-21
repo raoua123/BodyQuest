@@ -7,9 +7,12 @@ public static class SeedData
 {
     public static async Task InitializeAsync(AppDbContext db)
     {
-        if (await db.Modules.AnyAsync()) return;
+        // Worlds are added by slug, so a database created with the first six worlds
+        // receives the newer ones on the next start without losing anything.
+        var existing = await db.Modules.Select(m => m.Slug).ToListAsync();
 
-        db.Modules.AddRange(
+        var worlds = new List<BodyModule>
+        {
             new BodyModule
             {
                 Slug = "cerveau", Title = "Le cerveau", Emoji = "🧠", ColorHex = "#ff8fb1", SortOrder = 1,
@@ -93,9 +96,55 @@ public static class SeedData
                 },
                 Organs = { new Organ { Name = "Yeux", SvgId = "organ-eyes",
                     Description = "Ils transforment la lumière en images pour ton cerveau." } }
-            });
+            },
+            new BodyModule
+            {
+                Slug = "dents", Title = "Les dents", Emoji = "", ColorHex = "#ffd9a0", SortOrder = 7,
+                Description = "Dents, mâchoire et sourire.",
+                Lessons =
+                {
+                    new Lesson { SortOrder = 1, Title = "Des outils pour croquer",
+                        Content = "Tes dents ont chacune un travail : les incisives coupent, les canines déchirent et les molaires écrasent." },
+                    new Lesson { SortOrder = 2, Title = "Prendre soin de ses dents",
+                        Content = "Brosse-toi les dents deux fois par jour, pendant deux minutes, et mange moins de sucre : tes dents resteront solides." }
+                },
+                Organs = { new Organ { Name = "Dents", SvgId = "organ-teeth",
+                    Description = "Des outils solides pour croquer, couper et écraser." } }
+            },
+            new BodyModule
+            {
+                Slug = "peau", Title = "La peau", Emoji = "", ColorHex = "#f4b6a0", SortOrder = 8,
+                Description = "Protection, toucher et chaleur.",
+                Lessons =
+                {
+                    new Lesson { SortOrder = 1, Title = "Un manteau pour ton corps",
+                        Content = "Ta peau recouvre tout ton corps. Elle te protège des microbes, de l'eau et des petits chocs." },
+                    new Lesson { SortOrder = 2, Title = "Chaud, froid et transpiration",
+                        Content = "Quand tu as chaud, ta peau transpire pour te rafraîchir. Elle sent aussi le chaud, le froid et le toucher." }
+                },
+                Organs = { new Organ { Name = "Peau", SvgId = "organ-skin",
+                    Description = "Le manteau souple qui recouvre ton corps." } }
+            },
+            new BodyModule
+            {
+                Slug = "defenses", Title = "Les défenseurs du corps", Emoji = "", ColorHex = "#b9c9ff", SortOrder = 9,
+                Description = "Microbes, globules blancs et défenses du corps.",
+                Lessons =
+                {
+                    new Lesson { SortOrder = 1, Title = "Les microbes",
+                        Content = "Les microbes sont de tout petits êtres vivants. Certains peuvent nous rendre malades, mais se laver les mains avec du savon les éloigne." },
+                    new Lesson { SortOrder = 2, Title = "Les globules blancs",
+                        Content = "Dans ton sang, les globules blancs sont de petits soldats : ils repèrent les microbes et les combattent. Les vaccins leur apprennent à les reconnaître." }
+                },
+                Organs = { new Organ { Name = "Globules blancs", SvgId = "organ-defense",
+                    Description = "De petits soldats qui protègent ton sang." } }
+            }
+        };
 
-        db.Badges.AddRange(
+        db.Modules.AddRange(worlds.Where(w => !existing.Contains(w.Slug)));
+
+        if (!await db.Badges.AnyAsync())
+            db.Badges.AddRange(
             new Badge { Name = "Petit explorateur", Description = "Tu as commencé ton premier module.", Emoji = "🧭" },
             new Badge { Name = "Super savant", Description = "Tu as terminé un module.", Emoji = "🎓" },
             new Badge { Name = "Maître du corps humain", Description = "Tu as terminé les six modules.", Emoji = "🏆" });

@@ -1,4 +1,6 @@
 @inherits LayoutComponentBase
+@implements IDisposable
+@inject LanguageService L
 
 @* Shared icon sprite: use with <svg class="bq-i"><use href="#i-star" /></svg> *@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -22,7 +24,20 @@
 </div>
 
 <div id="blazor-error-ui">
-    Something went wrong.
-    <a href="" class="reload">Reload</a>
-    <a class="dismiss">Close</a>
+    @L["err.msg"]
+    <a href="" class="reload">@L["err.reload"]</a>
+    <a class="dismiss">@L["err.close"]</a>
 </div>
+
+@code {
+    protected override void OnInitialized() => L.Changed += OnLang;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) await L.InitAsync();
+    }
+
+    private void OnLang() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => L.Changed -= OnLang;
+}

@@ -86,7 +86,7 @@
 .gd-heading p { margin: 0; font-size: 14px; font-weight: 700; color: #5d7a55; }
 
 /* ---------- the scene ---------- */
-.gd-scene { position: relative; width: 100%; aspect-ratio: 1000 / 2200; container-type: inline-size; border-radius: 40px; overflow: hidden; box-shadow: 0 10px 0 #86c36d, 0 24px 50px #3b6a3a33; background: linear-gradient(180deg, #d4f0ff 0, #d4f0ff 3%, #b6e88c 7%); }
+.gd-scene { position: relative; width: 100%; aspect-ratio: 1000 / 3150; container-type: inline-size; border-radius: 40px; overflow: hidden; box-shadow: 0 10px 0 #86c36d, 0 24px 50px #3b6a3a33; background: linear-gradient(180deg, #d4f0ff 0, #d4f0ff 3%, #b6e88c 7%); }
 .gd-scene-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .gd-scene-svg [data-pop] { cursor: pointer; pointer-events: all; }
 .bq-pop { transform-box: fill-box; transform-origin: 50% 100%; transition: transform .2s; }

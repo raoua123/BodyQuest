@@ -85,6 +85,7 @@ public sealed class ProfileService
 
     public async Task<ExplorerProfile> LoadAsync()
     {
+
         var modules = await _modules.GetAllAsync();
         var completed = await _progress.GetCompletedAsync();
         var starMap = await _progress.GetStarsAsync();
@@ -92,7 +93,6 @@ public sealed class ProfileService
         var worlds = new List<WorldSummary>();
         var previousDone = true;
         var currentAssigned = false;
-
         foreach (var m in modules)
         {
             var keys = m.Lessons.Select(l => WorldProgressService.MakeKey(m.Slug, l.Id)).ToList();
@@ -125,7 +125,7 @@ public sealed class ProfileService
         var worldsDone = worlds.Count(w => w.Completed);
 
         var xp = stars * 10 + lessonsDone * 5;
-        var level = xp / XpPerLevel + 1;
+        var level = xp / XpPerLevel ;
         var levelPercent = (int)Math.Round(xp % XpPerLevel * 100.0 / XpPerLevel);
 
         var hasPerfect = completed.Any(k => starMap.TryGetValue(k, out var s) && s >= 3);

@@ -1,17 +1,25 @@
+
 # .NET
 bin/
 obj/
+*.user
+*.suo
 
 # Visual Studio
 .vs/
-*.user
-*.suo
 
 # VS Code
 .vscode/
 
 # JetBrains
 .idea/
+
+# Local configuration and secrets
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+.env
+.env.*
 
 # Logs
 *.log

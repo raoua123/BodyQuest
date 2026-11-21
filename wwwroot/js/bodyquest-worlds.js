@@ -110,8 +110,10 @@ window.bodyQuestWorlds = (function () {
     }
 
     /* ---------- Milo walking along the garden path ---------- */
+    const MAP_H = 3150; // height of the garden scene (1000 x 3150), see Services/GardenLayout.cs
     const map = { path: null, milo: null, len: 0, stops: [], at: 0, say: null, sayTimer: 0, box: null };
-    const FACTS = [
+    // LANG: was "const"; the list is replaced by setFacts() when the language changes
+    let FACTS = [
         "Your heart beats about 100,000 times every day!",
         "Your brain has billions of tiny neurons.",
         "You have 206 bones when you grow up.",
@@ -126,7 +128,7 @@ window.bodyQuestWorlds = (function () {
     function place(len) {
         const p = pos(len);
         map.milo.style.left = (p.x / 1000 * 100) + "%";
-        map.milo.style.top = (p.y / 2200 * 100) + "%";
+        map.milo.style.top = (p.y / MAP_H * 100) + "%";
         map.at = len;
     }
     function say(text, ms) {
@@ -138,12 +140,12 @@ window.bodyQuestWorlds = (function () {
     }
     function followScroll(y) {
         const r = map.box.getBoundingClientRect();
-        const target = window.scrollY + r.top + (y / 2200) * r.height - innerHeight * 0.45;
+        const target = window.scrollY + r.top + (y / MAP_H) * r.height - innerHeight * 0.45;
         window.scrollTo(0, window.scrollY + (target - window.scrollY) * 0.12);
     }
 
     const api = {
-        /* nodes: [{x,y}] in 1000x2200 space; finish: {x,y}. Stops sit on the path just before each node. */
+        /* nodes: [{x,y}] in 1000x3150 space; finish: {x,y}. Stops sit on the path just before each node. */
         mapInit: function (pathId, miloId, sayId, boxId, nodes, finish, startIndex) {
             map.path = document.getElementById(pathId); map.milo = document.getElementById(miloId);
             map.say = document.getElementById(sayId); map.box = document.getElementById(boxId);
@@ -165,6 +167,12 @@ window.bodyQuestWorlds = (function () {
             return true;
         },
         miloSay: function (text, ms) { say(text, ms); },
+
+        // LANG: Milo's facts in the chosen language
+        setFacts: function (arr) { if (Array.isArray(arr) && arr.length) { FACTS = arr; factIdx = 0; } },
+        // LANG: sets the page language and direction (Arabic = right-to-left)
+        setLang: function (lang) { var d = document.documentElement; d.lang = lang; d.dir = lang === "ar" ? "rtl" : "ltr"; },
+
         scrollToMilo: function () { if (map.box && map.milo) { const r = map.milo.getBoundingClientRect(); window.scrollTo({ top: window.scrollY + r.top - innerHeight * 0.45, behavior: "smooth" }); } },
         walkTo: function (index) {
             return new Promise(resolve => {
@@ -172,8 +180,7 @@ window.bodyQuestWorlds = (function () {
                 const target = map.stops[Math.min(index, map.stops.length - 1)];
                 const from = map.at, dist = Math.abs(target - from);
                 if (dist < 6) return resolve();
-                const dur = Math.min(4200, Math.max(900, dist * 2.6));
-                const t0 = performance.now(); let lastStep = 0;
+const dur = Math.min(1200, Math.max(350, dist * 0.6));                const t0 = performance.now(); let lastStep = 0;
                 map.milo.classList.add("walking");
                 const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
                 (function frame(now) {

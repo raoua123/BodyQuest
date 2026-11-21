@@ -1,13 +1,14 @@
 @page "/module/{Slug}"
 
 @implements IAsyncDisposable
+@inherits LocalizedComponentBase
 
 @inject ModuleService Modules
 @inject WorldProgressService Progress
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
-<PageTitle>BodyQuest - @(_module?.Title ?? "Learning world")</PageTitle>
+<PageTitle>BodyQuest - @(_module is null ? L["wd.title.default"] : MTitle)</PageTitle>
 
 @{
     var art = WorldArt.For(_module?.Slug);
@@ -30,15 +31,17 @@
         </a>
 
         <div class="wd-tools">
-            <span class="wd-chip-stars" title="Your stars">
+            <span class="wd-chip-stars" title="@L["tip.stars"]">
                 <svg class="bq-i"><use href="#i-star" /></svg> @_stars
             </span>
-            <button type="button" class="wd-tool @(_muted ? "is-off" : "")" title="Sound effects"
-                    aria-label="@(_muted ? "Turn sounds on" : "Turn sounds off")" @onclick="ToggleSound">
+            <PlayerChip />
+            <LangSwitcher />
+            <button type="button" class="wd-tool @(_muted ? "is-off" : "")" title="@L["snd.title"]"
+                    aria-label="@(_muted ? L["snd.on"] : L["snd.off"])" @onclick="ToggleSound">
                 <svg class="bq-i"><use href="@(_muted ? "#i-speaker-off" : "#i-speaker")" /></svg>
             </button>
             <a href="/" class="wd-back" data-snd="tap">
-                <svg class="bq-i"><use href="#i-back" /></svg> Adventure map
+                <svg class="bq-i"><use href="#i-back" /></svg> @L["nav.map"]
             </a>
         </div>
     </header>
@@ -47,25 +50,25 @@
     {
         <div class="wd-message">
             <img src="/images/portal.png" alt="" />
-            <h2>World not found</h2>
-            <p>We could not find this learning world.</p>
-            <a href="/" class="wd-btn">Back to the adventure map</a>
+            <h2>@L["wd.notfound"]</h2>
+            <p>@L["wd.notfound.p"]</p>
+            <a href="/" class="wd-btn">@L["wd.backmap"]</a>
         </div>
     }
     else if (!_loaded)
     {
         <div class="wd-message">
             <img src="/images/body-explorer.png" alt="" class="wd-bob" />
-            <h2>Preparing your adventure...</h2>
+            <h2>@L["wd.preparing"]</h2>
         </div>
     }
     else if (!_unlocked)
     {
         <div class="wd-message">
             <div class="wd-lock-art"><img src="@art.Image" alt="" /><span><svg class="bq-i"><use href="#i-lock" /></svg></span></div>
-            <h2>This world is locked</h2>
-            <p>Finish every lesson in the previous world to open it.</p>
-            <a href="/" class="wd-btn" data-snd="tap">Back to the adventure map</a>
+            <h2>@L["wd.locked"]</h2>
+            <p>@L["wd.locked.p"]</p>
+            <a href="/" class="wd-btn" data-snd="tap">@L["wd.backmap"]</a>
         </div>
     }
     else
@@ -74,27 +77,27 @@
 
             <section class="wd-intro">
                 <div class="wd-intro-art">
-                    <img src="@art.Image" alt="@_module.Title" />
+                    <img src="@art.Image" alt="@MTitle" />
                     <span class="wd-spark wd-spark-a"></span>
                     <span class="wd-spark wd-spark-b"></span>
                 </div>
 
                 <div class="wd-intro-text">
-                    <span class="wd-eyebrow">WORLD @(_worldNumber)</span>
-                    <h1>@_module.Title</h1>
-                    <p class="wd-tagline">@art.Tagline</p>
-                    <p>@_module.Description</p>
+                    <span class="wd-eyebrow">@L["home.world"] @(_worldNumber)</span>
+                    <h1>@MTitle</h1>
+                    <p class="wd-tagline">@I18n.Tagline(_module.Slug, L.Lang)</p>
+                    <p>@I18n.WorldDesc(_module, L.Lang)</p>
 
                     <div class="wd-progress">
                         <div class="wd-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@Percent">
                             <div class="wd-bar-fill" style="width:@(Percent)%"></div>
                         </div>
-                        <span><strong>@CompletedCount</strong> / @_module.Lessons.Count lessons</span>
+                        <span><strong>@CompletedCount</strong> / @_module.Lessons.Count @L["home.lessons"]</span>
                     </div>
                 </div>
             </section>
 
-            <section class="wd-stones" aria-label="Lessons">
+            <section class="wd-stones" aria-label="@L["wd.lessonsAria"]">
                 @for (var i = 0; i < _module.Lessons.Count; i++)
                 {
                     var index = i;
@@ -110,7 +113,7 @@
                         <button type="button"
                                 class="wd-stone @(done ? "is-done" : "") @(index == _active ? "is-active" : "") @(!open ? "is-locked" : "")"
                                 data-snd="@(open ? "pop" : "locked")"
-                                aria-label="@lesson.Title" aria-current="@(index == _active ? "step" : null)"
+                                aria-label="@LTitle(lesson)" aria-current="@(index == _active ? "step" : null)"
                                 @onclick="() => OpenLesson(index)">
                             @if (done)
                             {
@@ -125,7 +128,7 @@
                                 <span>@(index + 1)</span>
                             }
                         </button>
-                        <span class="wd-stone-label">@lesson.Title</span>
+                        <span class="wd-stone-label">@LTitle(lesson)</span>
                         @if (done)
                         {
                             <span class="wd-stone-stars">
@@ -142,17 +145,18 @@
             @if (_active >= 0 && _active < _module.Lessons.Count)
             {
                 var lesson = _module.Lessons[_active];
-                var extra = LessonExtras.For(_module.Slug, lesson.SortOrder);
+                var extra = I18n.Extra(_module.Slug, lesson.SortOrder, L.Lang);
+                var questions = QuizBank.ForLesson(_module.Slug, lesson.SortOrder, L.Lang);
                 var done = IsDone(lesson);
                 var image = extra?.Image ?? art.Mascot;
 
                 <article class="wd-card" @key="lesson.Id">
 
                     <div class="wd-card-top">
-                        <span class="wd-pill">LESSON @(_active + 1) OF @_module.Lessons.Count</span>
+                        <span class="wd-pill">@(L.F("wd.lessonOf", _active + 1, _module.Lessons.Count))</span>
                         @if (done)
                         {
-                            <span class="wd-pill wd-pill-done"><svg class="bq-i"><use href="#i-check" /></svg> Learned</span>
+                            <span class="wd-pill wd-pill-done"><svg class="bq-i"><use href="#i-check" /></svg> @L["wd.learned"]</span>
                         }
                     </div>
 
@@ -164,12 +168,12 @@
                         </div>
 
                         <div class="wd-text">
-                            <h2>@lesson.Title</h2>
-                            <p class="wd-explain">@lesson.Content</p>
+                            <h2>@LTitle(lesson)</h2>
+                            <p class="wd-explain">@LText(lesson)</p>
 
                             <button type="button" class="wd-listen @(_speaking ? "is-on" : "")" data-snd="tap" @onclick="() => ToggleListen(lesson, extra)">
                                 <svg class="bq-i"><use href="#i-speaker" /></svg>
-                                @(_speaking ? "Stop" : "Listen to Milo")
+                                @(_speaking ? L["wd.stop"] : L["wd.listen"])
                             </button>
                         </div>
                     </div>
@@ -178,25 +182,25 @@
                     {
                         <div class="wd-tiles">
                             <div class="wd-tile wd-tile-remember">
-                                <small>REMEMBER</small>
+                                <small>@L["wd.remember"]</small>
                                 <strong>@extra.Remember</strong>
                             </div>
 
                             <button type="button" class="wd-tile wd-tile-fact @(_factOpen ? "is-open" : "")"
                                     data-snd="@(_factOpen ? "close" : "open")" @onclick="ToggleFact" aria-expanded="@(_factOpen ? "true" : "false")">
-                                <small>FUN FACT</small>
+                                <small>@L["wd.fun"]</small>
                                 @if (_factOpen)
                                 {
                                     <strong>@extra.FunFact</strong>
                                 }
                                 else
                                 {
-                                    <strong class="wd-tap">Tap to reveal a surprise</strong>
+                                    <strong class="wd-tap">@L["wd.tap"]</strong>
                                 }
                             </button>
 
                             <div class="wd-tile wd-tile-try">
-                                <small>TRY IT</small>
+                                <small>@L["wd.try"]</small>
                                 <strong>@extra.TryIt</strong>
                             </div>
                         </div>
@@ -207,67 +211,91 @@
                         <div class="wd-success">
                             <img src="/images/body-explorer.png" alt="" />
                             <div>
-                                <strong>Great job, explorer!</strong>
-                                <p>You already learned this lesson. You can read it again whenever you like.</p>
+                                <strong>@L["wd.great"]</strong>
+                                <p>@L["wd.great.p"]</p>
                             </div>
                         </div>
                     }
-                    else if (extra is not null)
+                    else if (questions.Count > 0)
                     {
+                        var qi = Math.Min(_qIndex, questions.Count - 1);
+                        var q = questions[qi];
+                        var order = OrderFor(lesson.Id, qi, q.Options.Length);
+
                         <div class="wd-quiz">
                             <div class="wd-quiz-head">
-                                <span class="wd-pill wd-pill-quiz">QUICK CHECK</span>
-                                <span class="wd-quiz-stars" aria-label="@PotentialStars stars available">
+                                <span class="wd-pill wd-pill-quiz">
+                                    @L["wd.quick"]
+                                    <span class="wd-qcount">@(qi + 1) / @questions.Count</span>
+                                </span>
+                                <span class="wd-quiz-stars" aria-label="@(L.F("wd.starsAvail", PotentialStars))">
                                     @for (var s = 1; s <= 3; s++)
                                     {
-                                        <svg class="bq-i @(s <= (_checkPassed ? _earned : PotentialStars) ? "on" : "")"><use href="#i-star" /></svg>
+                                        <svg class="bq-i @(s <= (_quizDone ? _earned : PotentialStars) ? "on" : "")"><use href="#i-star" /></svg>
                                     }
                                 </span>
                             </div>
-                            <h3>@extra.Question</h3>
+
+                            <div class="wd-qdots" aria-hidden="true">
+                                @for (var d = 0; d < questions.Count; d++)
+                                {
+                                    <i class="@(d < qi || (d == qi && _qPassed) ? "is-done" : d == qi ? "is-now" : "")"></i>
+                                }
+                            </div>
+
+                            <h3>@q.Text</h3>
 
                             <div class="wd-options">
-                                @for (var o = 0; o < _order.Length; o++)
+                                @for (var o = 0; o < order.Length; o++)
                                 {
                                     var shown = o;
-                                    var original = _order[shown];
-                                    var isRight = original == extra.CorrectIndex;
+                                    var original = order[shown];
+                                    var isRight = original == q.CorrectIndex;
                                     var wrong = _wrong.Contains(shown);
 
                                     <button type="button"
-                                            class="wd-option @(_checkPassed && isRight ? "is-right" : "") @(wrong ? "is-wrong" : "")"
-                                            disabled="@(_checkPassed || wrong)"
+                                            class="wd-option @(_qPassed && isRight ? "is-right" : "") @(wrong ? "is-wrong" : "")"
+                                            disabled="@(_qPassed || wrong)"
                                             data-snd="tap"
-                                            @onclick="() => PickAnswer(shown, extra)">
-                                        <i>@((char)('A' + shown))</i>
-                                        <span>@extra.Options[original]</span>
+                                            @onclick="() => PickAnswer(shown, order, q, questions.Count)">
+                                        <i>@(L.Lang == "ar" ? "أبجد"[shown] : (char)('A' + shown))</i>
+                                        <span>@q.Options[original]</span>
                                     </button>
                                 }
                             </div>
 
-                            @if (_checkPassed)
+                            @if (_qPassed)
                             {
-                                <p class="wd-feedback is-good">Correct! @extra.Why</p>
+                                <p class="wd-feedback is-good">@L["wd.correct"] @q.Why</p>
                             }
                             else if (_wrong.Count > 0)
                             {
-                                <p class="wd-feedback is-try">Not quite. Read the lesson again and try another answer.</p>
+                                <p class="wd-feedback is-try">@L["wd.notquite"]</p>
+                            }
+
+                            @if (_qPassed && !_quizDone)
+                            {
+                                <div class="wd-nextq">
+                                    <button type="button" class="wd-btn" data-snd="pop" @onclick="NextQuestion">
+                                        @L["wd.nextq"] <svg class="bq-i"><use href="#i-arrow" /></svg>
+                                    </button>
+                                </div>
                             }
                         </div>
 
-                        <button type="button" class="wd-complete" disabled="@(!_checkPassed || _saving)" data-snd="pop" @onclick="() => CompleteLesson(lesson, extra)">
-                            @(_saving ? "Saving..." : "I learned this!")
+                        <button type="button" class="wd-complete" disabled="@(!_quizDone || _saving)" data-snd="pop" @onclick="() => CompleteLesson(lesson, true)">
+                            @(_saving ? L["wd.saving"] : L["wd.learnedBtn"])
                             <svg class="bq-i"><use href="#i-check" /></svg>
                         </button>
-                        @if (!_checkPassed)
+                        @if (!_quizDone)
                         {
-                            <p class="wd-hint">Answer the quick check to finish this lesson.</p>
+                            <p class="wd-hint">@L["wd.hint"]</p>
                         }
                     }
                     else
                     {
-                        <button type="button" class="wd-complete" disabled="@_saving" data-snd="pop" @onclick="() => CompleteLesson(lesson, extra)">
-                            I learned this!
+                        <button type="button" class="wd-complete" disabled="@_saving" data-snd="pop" @onclick="() => CompleteLesson(lesson, false)">
+                            @L["wd.learnedBtn"]
                             <svg class="bq-i"><use href="#i-check" /></svg>
                         </button>
                     }
@@ -278,19 +306,19 @@
                             @if (_active > 0)
                             {
                                 <button type="button" class="wd-btn wd-btn-ghost" data-snd="tap" @onclick="() => OpenLesson(_active - 1)">
-                                    <svg class="bq-i"><use href="#i-back" /></svg> Previous
+                                    <svg class="bq-i"><use href="#i-back" /></svg> @L["wd.prev"]
                                 </button>
                             }
                             @if (_active < _module.Lessons.Count - 1)
                             {
                                 <button type="button" class="wd-btn" data-snd="pop" @onclick="() => OpenLesson(_active + 1)">
-                                    Next lesson <svg class="bq-i"><use href="#i-arrow" /></svg>
+                                    @L["wd.next"] <svg class="bq-i"><use href="#i-arrow" /></svg>
                                 </button>
                             }
                             else
                             {
                                 <a href="/" class="wd-btn" data-snd="pop">
-                                    Back to the map <svg class="bq-i"><use href="#i-arrow" /></svg>
+                                    @L["wd.toMap"] <svg class="bq-i"><use href="#i-arrow" /></svg>
                                 </a>
                             }
                         </div>
@@ -317,8 +345,8 @@
                     <span class="wd-spark wd-spark-a"></span>
                     <span class="wd-spark wd-spark-b"></span>
                 </div>
-                <span class="wd-eyebrow">WORLD COMPLETED</span>
-                <h2>You mastered @_module.Title!</h2>
+                <span class="wd-eyebrow">@L["wd.completed"]</span>
+                <h2>@(L.F("wd.mastered", MTitle))</h2>
                 <div class="wd-modal-stars">
                     @for (var s = 1; s <= 3; s++)
                     {
@@ -328,16 +356,16 @@
                 <p>
                     @if (_nextWorldTitle is not null)
                     {
-                        <text>A new world is waiting: <strong>@_nextWorldTitle</strong></text>
+                        <text>@L["wd.nextWaiting"] <strong>@_nextWorldTitle</strong></text>
                     }
                     else
                     {
-                        <text>You explored every world. You are a Body Hero!</text>
+                        <text>@L["wd.heroAll"]</text>
                     }
                 </p>
                 <div class="wd-modal-actions">
-                    <button type="button" class="wd-btn wd-btn-ghost" @onclick="CloseCelebration">Read again</button>
-                    <a href="/" class="wd-btn" data-snd="pop">To the adventure map <svg class="bq-i"><use href="#i-arrow" /></svg></a>
+                    <button type="button" class="wd-btn wd-btn-ghost" @onclick="CloseCelebration">@L["wd.readAgain"]</button>
+                    <a href="/" class="wd-btn" data-snd="pop">@L["wd.toMapBtn"] <svg class="bq-i"><use href="#i-arrow" /></svg></a>
                 </div>
             </div>
         </div>
@@ -352,17 +380,23 @@
     private HashSet<string> _completed = new(StringComparer.OrdinalIgnoreCase);
     private Dictionary<string, int> _starMap = new(StringComparer.OrdinalIgnoreCase);
 
-    private bool _loaded, _unlocked, _saving, _muted, _speaking, _factOpen, _checkPassed, _celebrating;
+    private bool _loaded, _unlocked, _saving, _muted, _speaking, _factOpen, _celebrating;
+    private bool _qPassed, _quizDone;                  // current question answered / every question answered
     private int _active = -1, _worldNumber, _stars, _earned;
-    private int[] _order = Array.Empty<int>();
-    private readonly HashSet<int> _wrong = new();
+    private int _qIndex, _wrongTotal;                  // which question we are on, wrong answers in this lesson
+    private readonly HashSet<int> _wrong = new();      // wrong answers on the current question
     private string? _nextWorldTitle, _justFinished;
     private int _speakToken;
+
+    private string MTitle => _module is null ? "" : I18n.WorldTitle(_module, L.Lang);
+    private string LTitle(Lesson l) => I18n.LessonTitle(_module!.Slug, l, L.Lang);
+    private string LText(Lesson l) => I18n.LessonText(_module!.Slug, l, L.Lang);
 
     private int CompletedCount => _module?.Lessons.Count(IsDone) ?? 0;
     private int Percent => _module is null || _module.Lessons.Count == 0
         ? 0 : (int)Math.Round(CompletedCount * 100.0 / _module.Lessons.Count);
-    private int PotentialStars => Math.Max(1, 3 - _wrong.Count);
+    // No mistake = 3 stars, one or two mistakes = 2 stars, more = 1 star.
+    private int PotentialStars => _wrongTotal == 0 ? 3 : _wrongTotal <= 2 ? 2 : 1;
     private int WorldStars => _module is null || _module.Lessons.Count == 0 ? 0
         : Math.Clamp((int)Math.Round(_module.Lessons.Average(StarsFor)), 1, 3);
 
@@ -380,6 +414,8 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_loaded || _module is null) return;
+
+        await L.InitAsync();
 
         _completed = await Progress.GetCompletedAsync();
         _starMap = await Progress.GetStarsAsync();
@@ -417,22 +453,27 @@
     {
         _active = index;
         _factOpen = false;
-        _checkPassed = false;
+        _qIndex = 0;
+        _qPassed = false;
+        _quizDone = false;
         _earned = 0;
+        _wrongTotal = 0;
         _wrong.Clear();
         _justFinished = null;
         StopSpeakingQuietly();
+    }
 
-        // Shuffle the answers the same way every time for a given lesson.
-        var lesson = _module!.Lessons[index];
-        var extra = LessonExtras.For(_module.Slug, lesson.SortOrder);
-        _order = extra is null ? Array.Empty<int>() : Enumerable.Range(0, extra.Options.Length).ToArray();
-        var rng = new Random(lesson.Id * 31 + 7);
-        for (var i = _order.Length - 1; i > 0; i--)
+    /// <summary>Shuffles the answers the same way every time for a given lesson and question.</summary>
+    private static int[] OrderFor(int lessonId, int questionIndex, int count)
+    {
+        var order = Enumerable.Range(0, count).ToArray();
+        var rng = new Random(lessonId * 31 + 7 + questionIndex * 101);
+        for (var i = order.Length - 1; i > 0; i--)
         {
             var j = rng.Next(i + 1);
-            (_order[i], _order[j]) = (_order[j], _order[i]);
+            (order[i], order[j]) = (order[j], order[i]);
         }
+        return order;
     }
 
     private void OpenLesson(int index)
@@ -443,33 +484,45 @@
 
     private void ToggleFact() => _factOpen = !_factOpen;
 
-    private async Task PickAnswer(int shown, LessonExtras.Extra extra)
+    private async Task PickAnswer(int shown, int[] order, QuizBank.Question q, int total)
     {
-        if (_checkPassed) return;
+        if (_qPassed) return;
 
-        if (_order[shown] == extra.CorrectIndex)
+        if (order[shown] == q.CorrectIndex)
         {
-            _checkPassed = true;
-            _earned = PotentialStars;
+            _qPassed = true;
+            if (_qIndex >= total - 1)
+            {
+                _quizDone = true;
+                _earned = PotentialStars;
+            }
             await Progress.PlayAsync("sparkle");
             await Progress.ConfettiAsync(false);
         }
         else
         {
             _wrong.Add(shown);
+            _wrongTotal++;
             await Progress.PlayAsync("locked");
         }
     }
 
-    private async Task CompleteLesson(Lesson lesson, LessonExtras.Extra? extra)
+    private void NextQuestion()
+    {
+        _qIndex++;
+        _qPassed = false;
+        _wrong.Clear();
+    }
+
+    private async Task CompleteLesson(Lesson lesson, bool hasQuiz)
     {
         if (_saving || _module is null || !CanOpen(_active) || IsDone(lesson)) return;
-        if (extra is not null && !_checkPassed) return;
+        if (hasQuiz && !_quizDone) return;
 
         _saving = true;
         try
         {
-            var stars = extra is null ? 1 : Math.Max(1, _earned);
+            var stars = hasQuiz ? Math.Max(1, _earned) : 1;
             await Progress.MarkCompletedAsync(_module.Slug, lesson.Id, stars);
             _completed = await Progress.GetCompletedAsync();
             _starMap = await Progress.GetStarsAsync();
@@ -478,14 +531,15 @@
             if (AllDone(_module))
             {
                 var idx = _allModules.FindIndex(m => m.Slug == _module.Slug);
-                _nextWorldTitle = idx >= 0 && idx < _allModules.Count - 1 ? _allModules[idx + 1].Title : null;
+                _nextWorldTitle = idx >= 0 && idx < _allModules.Count - 1
+                    ? I18n.WorldTitle(_allModules[idx + 1], L.Lang) : null;
                 _celebrating = true;
                 await Progress.PlayAsync("world");
                 await Progress.ConfettiAsync(true);
             }
             else
             {
-                _justFinished = $"+{stars} star{(stars == 1 ? "" : "s")}! Lesson learned.";
+                _justFinished = stars == 1 ? L["wd.reward1"] : L.F("wd.rewardN", stars);
                 await Progress.PlayCompletionSoundAsync();
                 await Progress.ConfettiAsync(false);
             }
@@ -514,8 +568,8 @@
             return;
         }
 
-        var text = $"{lesson.Title}. {lesson.Content} {extra?.Remember}";
-        var ok = await JS.InvokeAsync<bool>("bodyQuestWorlds.speak", text, "fr-FR");
+        var text = $"{LTitle(lesson)}. {LText(lesson)} {extra?.Remember}";
+        var ok = await JS.InvokeAsync<bool>("bodyQuestWorlds.speak", text, L.SpeechLang);
         if (!ok) return;
 
         _speaking = true;

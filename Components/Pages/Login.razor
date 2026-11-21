@@ -1,0 +1,444 @@
+@page "/login"
+
+@using System.Text.Json
+@inherits LocalizedComponentBase
+@inject PlayerSession Session
+@inject WorldProgressService Progress
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>@L["auth.title"]</PageTitle>
+
+<div class="lg-page">
+
+    <div class="lg-sky" aria-hidden="true">
+        <span class="lg-cloud lg-cloud-a"></span>
+        <span class="lg-cloud lg-cloud-b"></span>
+        <span class="lg-hill lg-hill-a"></span>
+        <span class="lg-hill lg-hill-b"></span>
+    </div>
+
+    <header class="lg-top">
+        <a href="/" class="lg-logo" data-snd="tap">
+            <span class="lg-logo-mark">B!</span>
+            <span>body<span>quest</span></span>
+        </a>
+        <LangSwitcher />
+    </header>
+
+    <main class="lg-card" tabindex="-1" @onkeydown="OnKey">
+
+        @if (_step == Step.Choose)
+        {
+            <img class="lg-milo" src="/images/body-explorer.png" alt="" />
+            <h1>@L["auth.who"]</h1>
+            <p class="lg-lead">@L["auth.who.p"]</p>
+
+            @if (_recent.Count > 0)
+            {
+                <h2 class="lg-sub">@L["auth.here"]</h2>
+                <div class="lg-recent">
+                    @foreach (var r in _recent)
+                    {
+                        var player = r;
+                        <button type="button" class="lg-player" data-snd="pop" @onclick="() => PickRecent(player)">
+                            <img src="@AvatarPath(player.Avatar)" alt="" />
+                            <span>@player.Name</span>
+                        </button>
+                    }
+                </div>
+            }
+
+            <div class="lg-actions">
+                <button type="button" class="lg-btn" data-snd="pop" @onclick="StartNew">@L["auth.new"]</button>
+                <button type="button" class="lg-btn lg-btn-alt" data-snd="pop" @onclick="StartBack">@L["auth.back"]</button>
+            </div>
+
+            <a href="/" class="lg-guest" data-snd="tap">
+                <strong>@L["auth.guest"]</strong>
+                <small>@L["auth.guest.p"]</small>
+            </a>
+        }
+        else if (_step == Step.NewWho)
+        {
+            <h1>@L["auth.pick"]</h1>
+
+            <div class="lg-avatars" role="radiogroup" aria-label="@L["auth.pick"]">
+                @foreach (var a in ProfileService.Avatars)
+                {
+                    var avatar = a;
+                    <button type="button" role="radio" aria-checked="@(_avatar == avatar.Id ? "true" : "false")"
+                            class="lg-avatar @(_avatar == avatar.Id ? "is-on" : "")" data-snd="tap"
+                            @onclick="() => _avatar = avatar.Id">
+                        <img src="@avatar.Path" alt="" />
+                        <span>@avatar.Label</span>
+                    </button>
+                }
+            </div>
+
+            <label class="lg-label" for="lgName">@L["auth.name"]</label>
+            <input id="lgName" class="lg-input" type="text" maxlength="16" autocomplete="off" autocapitalize="words"
+                   placeholder="@L["auth.name.ph"]" @bind="_name" @bind:event="oninput" />
+            <p class="lg-hint">@L["auth.name.hint"]</p>
+
+            <p class="lg-error" role="alert" hidden="@(_error is null)">@_error</p>
+
+            <div class="lg-actions">
+                <button type="button" class="lg-btn lg-btn-ghost" data-snd="tap" @onclick="GoChoose">@L["auth.cancel"]</button>
+                <button type="button" class="lg-btn" data-snd="pop" disabled="@(CleanName().Length < 2)" @onclick="NameDone">
+                    @L["auth.next"]
+                </button>
+            </div>
+        }
+        else if (_step == Step.BackWho)
+        {
+            <img class="lg-milo" src="/images/body-explorer.png" alt="" />
+            <h1>@L["auth.name"]</h1>
+
+            <input id="lgName2" class="lg-input" type="text" maxlength="16" autocomplete="username" autocapitalize="words"
+                   placeholder="@L["auth.name.ph"]" @bind="_name" @bind:event="oninput" />
+
+            <p class="lg-error" role="alert" hidden="@(_error is null)">@_error</p>
+
+            <div class="lg-actions">
+                <button type="button" class="lg-btn lg-btn-ghost" data-snd="tap" @onclick="GoChoose">@L["auth.cancel"]</button>
+                <button type="button" class="lg-btn" data-snd="pop" disabled="@(CleanName().Length < 2)" @onclick="BackNameDone">
+                    @L["auth.next"]
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="lg-who">
+                <img src="@AvatarPath(_avatar)" alt="" />
+                <strong>@CleanName()</strong>
+            </div>
+
+            <h1>@(_step == Step.NewPin ? L["auth.pin.new"] : _step == Step.NewPin2 ? L["auth.pin.again"] : L["auth.pin.enter"])</h1>
+            <p class="lg-lead">
+                @if (_step == Step.NewPin)
+                {
+                    <text>@L["auth.pin.new.p"]</text>
+                }
+                else if (_step == Step.NewPin2)
+                {
+                    <text>@L["auth.pin.again.p"]</text>
+                }
+                else
+                {
+                    <text>@L.F("auth.pin.enter.p", CleanName())</text>
+                }
+            </p>
+
+            <div class="lg-dots" aria-label="@L["auth.pin.enter"]">
+                @for (var i = 0; i < 4; i++)
+                {
+                    <i class="@(i < _pin.Length ? "is-on" : "")"></i>
+                }
+            </div>
+
+            <p class="lg-error" role="alert" hidden="@(_error is null)">@_error</p>
+
+            <div class="lg-keypad">
+                @foreach (var digit in new[] { '1', '2', '3', '4', '5', '6', '7', '8', '9' })
+                {
+                    var d = digit;
+                    <button type="button" class="lg-key" data-snd="tap" disabled="@_busy" @onclick="() => PressKey(d)">@d</button>
+                }
+                <button type="button" class="lg-key lg-key-small" data-snd="tap" disabled="@_busy" @onclick="GoBackFromPin">
+                    @L["auth.cancel"]
+                </button>
+                <button type="button" class="lg-key" data-snd="tap" disabled="@_busy" @onclick="() => PressKey('0')">0</button>
+                <button type="button" class="lg-key lg-key-small" data-snd="tap" disabled="@_busy" @onclick="Backspace">
+                    @L["auth.erase"]
+                </button>
+            </div>
+
+            @if (_busy)
+            {
+                <p class="lg-busy">@L["auth.saving"]</p>
+            }
+        }
+    </main>
+</div>
+
+@code {
+    private enum Step { Choose, NewWho, NewPin, NewPin2, BackWho, BackPin }
+
+    private sealed record Recent(string Name, string Avatar);
+    private sealed record AuthResult(bool Ok, int Status, string? Error);
+
+    private const string RecentKey = "bodyquest.players.v1";
+
+    private Step _step = Step.Choose;
+    private string _name = "";
+    private string _avatar = ProfileService.Avatars[0].Id;
+    private string _pin = "";
+    private string _firstPin = "";
+    private string? _error;
+    private bool _busy;
+    private List<Recent> _recent = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        PlayerInfo? me = null;
+        try { me = await Session.GetAsync(); }
+        catch (InvalidOperationException) { }
+
+        if (me is not null) Navigation.NavigateTo("/");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        await L.InitAsync();
+        _recent = await LoadRecentAsync();
+        StateHasChanged();
+    }
+
+    // ---------- navigation between steps ----------
+
+    private void GoChoose()
+    {
+        _step = Step.Choose;
+        _error = null;
+        _pin = "";
+        _firstPin = "";
+    }
+
+    private void StartNew()
+    {
+        _step = Step.NewWho;
+        _error = null;
+    }
+
+    private void StartBack()
+    {
+        _step = Step.BackWho;
+        _error = null;
+    }
+
+    private void PickRecent(Recent player)
+    {
+        _name = player.Name;
+        _avatar = ProfileService.Avatars.Any(a => a.Id == player.Avatar) ? player.Avatar : ProfileService.Avatars[0].Id;
+        _pin = "";
+        _error = null;
+        _step = Step.BackPin;
+    }
+
+    private void NameDone()
+    {
+        if (CleanName().Length < 2) return;
+        _name = CleanName();
+        _pin = "";
+        _firstPin = "";
+        _error = null;
+        _step = Step.NewPin;
+    }
+
+    private void BackNameDone()
+    {
+        if (CleanName().Length < 2) return;
+        _name = CleanName();
+        _pin = "";
+        _error = null;
+        var known = _recent.FirstOrDefault(r => string.Equals(r.Name, _name, StringComparison.CurrentCultureIgnoreCase));
+        if (known is not null) _avatar = known.Avatar;
+        _step = Step.BackPin;
+    }
+
+    private void GoBackFromPin()
+    {
+        _pin = "";
+        _firstPin = "";
+        _error = null;
+        _step = _step switch
+        {
+            Step.NewPin => Step.NewWho,
+            Step.NewPin2 => Step.NewPin,
+            _ => Step.Choose
+        };
+    }
+
+    // ---------- the keypad ----------
+
+    private bool OnCodeStep => _step is Step.NewPin or Step.NewPin2 or Step.BackPin;
+
+    private void OnKey(KeyboardEventArgs e)
+    {
+        if (!OnCodeStep || _busy) return;
+
+        if (e.Key.Length == 1 && e.Key[0] >= '0' && e.Key[0] <= '9')
+            _ = PressKey(e.Key[0]);
+        else if (e.Key == "Backspace")
+            Backspace();
+    }
+
+    private void Backspace()
+    {
+        if (_pin.Length > 0) _pin = _pin[..^1];
+        _error = null;
+    }
+
+    private async Task PressKey(char digit)
+    {
+        if (_busy || _pin.Length >= 4) return;
+
+        _pin += digit;
+        _error = null;
+        if (_pin.Length < 4) return;
+
+        switch (_step)
+        {
+            case Step.NewPin:
+                _firstPin = _pin;
+                _pin = "";
+                _step = Step.NewPin2;
+                break;
+
+            case Step.NewPin2:
+                if (_pin != _firstPin)
+                {
+                    _pin = "";
+                    _firstPin = "";
+                    _error = L["auth.err.match"];
+                    _step = Step.NewPin;
+                    await Progress.PlayAsync("locked");
+                    break;
+                }
+                await RegisterAsync();
+                break;
+
+            case Step.BackPin:
+                await LoginAsync();
+                break;
+        }
+    }
+
+    // ---------- talking to the server ----------
+
+    private async Task RegisterAsync()
+    {
+        _busy = true;
+        StateHasChanged();
+
+        // A new account always starts at zero (no progress is copied from this browser).
+        var result = await PostAsync("/api/auth/register", new
+        {
+            nickname = _name,
+            pin = _pin,
+            avatarId = _avatar,
+            done = Array.Empty<string>(),
+            stars = new Dictionary<string, int>()
+        });
+
+        if (result.Ok)
+        {
+            await RememberAsync();
+            await Progress.PlayAsync("world");
+            Navigation.NavigateTo("/", forceLoad: true);
+            return;
+        }
+
+        _busy = false;
+        _pin = "";
+        _firstPin = "";
+        await Progress.PlayAsync("locked");
+
+        switch (result.Error)
+        {
+            case "taken":
+                _error = L["auth.err.taken"];
+                _step = Step.NewWho;
+                break;
+            case "name":
+                _error = L["auth.err.name"];
+                _step = Step.NewWho;
+                break;
+            case "pin":
+                _error = L["auth.err.pin"];
+                _step = Step.NewPin;
+                break;
+            default:
+                _error = L["auth.err.net"];
+                _step = Step.NewPin;
+                break;
+        }
+    }
+
+    private async Task LoginAsync()
+    {
+        _busy = true;
+        StateHasChanged();
+
+        var result = await PostAsync("/api/auth/login", new { nickname = _name, pin = _pin });
+
+        if (result.Ok)
+        {
+            await RememberAsync();
+            await Progress.PlayAsync("world");
+            Navigation.NavigateTo("/", forceLoad: true);
+            return;
+        }
+
+        _busy = false;
+        _pin = "";
+        await Progress.PlayAsync("locked");
+
+        _error = result.Error switch
+        {
+            "locked" => L["auth.err.locked"],
+            "wrong" => L["auth.err.wrong"],
+            _ => L["auth.err.net"]
+        };
+    }
+
+    private async Task<AuthResult> PostAsync(string url, object body)
+    {
+        try
+        {
+            return await JS.InvokeAsync<AuthResult>("bodyQuestAuth.post", url, body);
+        }
+        catch (JSException) { return new AuthResult(false, 0, "network"); }
+        catch (InvalidOperationException) { return new AuthResult(false, 0, "network"); }
+    }
+
+    // ---------- players remembered on this device (nickname + avatar only, never the code) ----------
+
+    private async Task<List<Recent>> LoadRecentAsync()
+    {
+        try
+        {
+            var raw = await JS.InvokeAsync<string?>("bodyQuestWorlds.loadValue", RecentKey);
+            if (string.IsNullOrWhiteSpace(raw)) return new();
+
+            var list = JsonSerializer.Deserialize<List<Recent>>(raw, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            return list?.Where(r => !string.IsNullOrWhiteSpace(r.Name)).Take(6).ToList() ?? new();
+        }
+        catch (JsonException) { return new(); }
+        catch (JSException) { return new(); }
+        catch (InvalidOperationException) { return new(); }
+    }
+
+    private async Task RememberAsync()
+    {
+        try
+        {
+            var list = await LoadRecentAsync();
+            list.RemoveAll(r => string.Equals(r.Name, _name, StringComparison.CurrentCultureIgnoreCase));
+            list.Insert(0, new Recent(_name, _avatar));
+            await JS.InvokeVoidAsync("bodyQuestWorlds.saveValue", RecentKey, JsonSerializer.Serialize(list.Take(6).ToList()));
+        }
+        catch (JSException) { }
+        catch (InvalidOperationException) { }
+    }
+
+    // ---------- small helpers ----------
+
+    private string CleanName() => ProfileService.Clean(_name);
+
+    private static string AvatarPath(string id) =>
+        (ProfileService.Avatars.FirstOrDefault(a => a.Id == id) ?? ProfileService.Avatars[0]).Path;
+}

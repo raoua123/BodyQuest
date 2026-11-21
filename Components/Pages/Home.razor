@@ -1,11 +1,12 @@
 @page "/"
 
+@inherits LocalizedComponentBase
 @inject ModuleService Modules
 @inject WorldProgressService Progress
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
-<PageTitle>BodyQuest - Adventure Map</PageTitle>
+<PageTitle>@L["home.title"]</PageTitle>
 
 <div class="gd-page">
 
@@ -31,25 +32,27 @@
 
         <nav class="gd-nav">
             <a class="gd-nav-active" href="/" data-snd="tap">
-                <svg class="bq-i"><use href="#i-map" /></svg> Adventure map
+                <svg class="bq-i"><use href="#i-map" /></svg> @L["nav.map"]
             </a>
             <a href="/profile" data-snd="tap">
-                <svg class="bq-i"><use href="#i-user" /></svg> My profile
+                <svg class="bq-i"><use href="#i-user" /></svg> @L["nav.profile"]
             </a>
         </nav>
 
         <div class="gd-tools">
-            <span class="gd-chip gd-chip-stars" title="Your stars">
+            <span class="gd-chip gd-chip-stars" title="@L["tip.stars"]">
                 <svg class="bq-i"><use href="#i-star" /></svg> @_stars
             </span>
+            <PlayerChip />
+            <LangSwitcher />
             <button type="button" class="gd-tool @(_muted ? "is-off" : "")"
-                    aria-label="@(_muted ? "Turn sounds on" : "Turn sounds off")"
-                    title="Sound effects" @onclick="ToggleSound">
+                    aria-label="@(_muted ? L["snd.on"] : L["snd.off"])"
+                    title="@L["snd.title"]" @onclick="ToggleSound">
                 <svg class="bq-i"><use href="@(_muted ? "#i-speaker-off" : "#i-speaker")" /></svg>
             </button>
             <button type="button" class="gd-tool @(_music ? "is-on" : "")"
-                    aria-label="@(_music ? "Turn music off" : "Turn music on")"
-                    title="Music" @onclick="ToggleMusic">
+                    aria-label="@(_music ? L["music.off"] : L["music.on"])"
+                    title="@L["music.title"]" @onclick="ToggleMusic">
                 <svg class="bq-i"><use href="#i-note" /></svg>
             </button>
         </div>
@@ -59,13 +62,13 @@
 
         <section class="gd-hero">
             <div class="gd-hero-card">
-                <span class="gd-eyebrow">WELCOME, EXPLORER!</span>
-                <h1>Ready for your <span>next discovery?</span></h1>
-                <p>Follow the garden path with Milo and unlock every world inside the human body.</p>
+                <span class="gd-eyebrow">@L["home.eyebrow"]</span>
+                <h1>@L["home.h1a"] <span>@L["home.h1b"]</span></h1>
+                <p>@L["home.intro"]</p>
 
                 <div class="gd-hero-stats">
-                    <span><strong>@CompletedLessons</strong> / @TotalLessons lessons</span>
-                    <span><strong>@CompletedWorlds</strong> / @_modules.Count worlds</span>
+                    <span><strong>@CompletedLessons</strong> / @TotalLessons @L["home.lessons"]</span>
+                    <span><strong>@CompletedWorlds</strong> / @_modules.Count @L["home.worlds"]</span>
                     <span class="gd-rank">@Rank</span>
                 </div>
 
@@ -75,21 +78,21 @@
 
                 <button type="button" class="gd-cta" data-snd="pop" @onclick="ContinueAdventure"
                         disabled="@(!_loaded || _modules.Count == 0 || _walking)">
-                    @(CompletedLessons == 0 ? "Start the adventure" : "Continue the adventure")
+                    @(CompletedLessons == 0 ? L["home.start"] : L["home.continue"])
                     <svg class="bq-i"><use href="#i-arrow" /></svg>
                 </button>
             </div>
 
             <div class="gd-hero-milo">
-                <img src="/images/body-explorer.png" alt="Milo, the tiny explorer" />
-                <span class="gd-hero-bubble">Let's explore!</span>
+                <img src="/images/body-explorer.png" alt="@L["home.milo.alt"]" />
+                <span class="gd-hero-bubble">@L["home.bubble"]</span>
             </div>
         </section>
 
         <div class="gd-heading">
-            <span class="gd-eyebrow">YOUR LEARNING JOURNEY</span>
-            <h2>The Body Garden</h2>
-            <p>Tap a world and Milo walks there. Tap Milo for a fun fact, and tap the flowers!</p>
+            <span class="gd-eyebrow">@L["home.journey"]</span>
+            <h2>@L["home.garden"]</h2>
+            <p>@L["home.garden.p"]</p>
         </div>
 
         <section class="gd-scene" id="gdScene">
@@ -98,7 +101,7 @@
 
             <div class="gd-layer">
 
-                <span class="gd-tag gd-tag-start" style="left:50%;top:@(StartTop)%">START</span>
+                <span class="gd-tag gd-tag-start" style="left:50%;top:@(StartTop)%">@L["home.start.tag"]</span>
 
                 @if (_loaded)
                 {
@@ -118,11 +121,11 @@
 
                             @if (current)
                             {
-                                <span class="gd-here">Start here</span>
+                                <span class="gd-here">@L["home.here"]</span>
                             }
 
                             <button type="button" class="gd-bubble" data-snd="pop"
-                                    aria-label="@(unlocked ? "Open " + world.Title : world.Title + " is locked")"
+                                    aria-label="@(unlocked ? L.F("home.open", WTitle(world)) : L.F("home.locked", WTitle(world)))"
                                     @onclick="() => OpenWorld(index)">
                                 <span class="gd-bubble-ring"></span>
                                 <img src="@art.Image" alt="" />
@@ -141,7 +144,7 @@
 
                             @if (done)
                             {
-                                <span class="gd-medal" aria-label="@WorldStars(world) stars">
+                                <span class="gd-medal" aria-label="@(L.F("home.stars", WorldStars(world)))">
                                     @for (var s = 1; s <= 3; s++)
                                     {
                                         <svg class="bq-i @(s <= WorldStars(world) ? "on" : "")"><use href="#i-star" /></svg>
@@ -150,9 +153,9 @@
                             }
 
                             <div class="gd-sign">
-                                <small>WORLD @(index + 1)</small>
-                                <strong>@world.Title</strong>
-                                <span class="gd-pips" aria-label="@finished of @lessons lessons">
+                                <small>@L["home.world"] @(index + 1)</small>
+                                <strong>@WTitle(world)</strong>
+                                <span class="gd-pips" aria-label="@(L.F("home.pips", finished, lessons))">
                                     @for (var p = 0; p < lessons; p++)
                                     {
                                         <i class="@(p < finished ? "on" : "")"></i>
@@ -165,14 +168,14 @@
 
                 <div class="@(AllDone ? "gd-chest-tag is-open" : "gd-chest-tag")"
                      style="left:50%;top:@(FinishTop)%">
-                    <span>@(AllDone ? "You did it!" : "Treasure")</span>
+                    <span>@(AllDone ? L["home.didit"] : L["home.treasure"])</span>
                 </div>
 
                 <span class="gd-butterfly gd-bf-a" data-pop="1"></span>
                 <span class="gd-butterfly gd-bf-b" data-pop="1"></span>
                 <span class="gd-butterfly gd-bf-c" data-pop="1"></span>
 
-                <button type="button" id="gdMilo" class="gd-milo" aria-label="Milo - tap for a fun fact">
+                <button type="button" id="gdMilo" class="gd-milo" aria-label="@L["home.milo.aria"]">
                     <span class="gd-milo-say" id="gdMiloSay" role="status"></span>
                     <img src="/images/body-explorer.png" alt="Milo" />
                     <span class="gd-milo-shadow"></span>
@@ -183,20 +186,20 @@
         <aside class="gd-tip">
             <svg class="bq-i"><use href="#i-bulb" /></svg>
             <div>
-                <strong>One step at a time!</strong>
-                <p>Finish every lesson in a world to open the next one. Answer the quick check to earn up to three stars per lesson.</p>
+                <strong>@L["home.tip.t"]</strong>
+                <p>@L["home.tip.p"]</p>
             </div>
 
             <div class="gd-reset">
                 @if (!_confirmReset)
                 {
-                    <button type="button" class="gd-link" @onclick="() => _confirmReset = true">Start over</button>
+                    <button type="button" class="gd-link" @onclick="() => _confirmReset = true">@L["home.reset"]</button>
                 }
                 else
                 {
-                    <span>Erase all stars?</span>
-                    <button type="button" class="gd-link danger" @onclick="ResetAll">Yes, erase</button>
-                    <button type="button" class="gd-link" @onclick="() => _confirmReset = false">Keep them</button>
+                    <span>@L["home.reset.q"]</span>
+                    <button type="button" class="gd-link danger" @onclick="ResetAll">@L["home.reset.yes"]</button>
+                    <button type="button" class="gd-link" @onclick="() => _confirmReset = false">@L["home.reset.no"]</button>
                 }
             </div>
         </aside>
@@ -244,15 +247,17 @@
     private string StartTop => (120 / GardenLayout.Height * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
     private string FinishTop => ((GardenLayout.Finish.Y - 55) / GardenLayout.Height * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
 
-    private string Rank => OverallProgress switch
+    private string Rank => L["rank." + (OverallProgress switch { 0 => 0, < 25 => 1, < 50 => 2, < 75 => 3, < 100 => 4, _ => 5 })];
+
+    private string WTitle(BodyModule m) => I18n.WorldTitle(m, L.Lang);
+
+    protected override async Task OnLanguageChangedAsync()
     {
-        0 => "Curious Cadet",
-        < 25 => "Young Explorer",
-        < 50 => "Body Scout",
-        < 75 => "Super Scientist",
-        < 100 => "Anatomy Ace",
-        _ => "Body Hero"
-    };
+        if (!_mapReady) return;
+        try { await JS.InvokeVoidAsync("bodyQuestWorlds.setFacts", I18n.Facts(L.Lang)); }
+        catch (JSException) { }
+        catch (JSDisconnectedException) { }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -263,6 +268,7 @@
     {
         if (firstRender)
         {
+            await L.InitAsync();
             _completed = await Progress.GetCompletedAsync();
             _starMap = await Progress.GetStarsAsync();
             _stars = await Progress.GetTotalStarsAsync();
@@ -291,6 +297,8 @@
             var current = Math.Min(CurrentIndex, NodeCount);
             var stored = Math.Min(await Progress.GetMiloStopAsync(), current);
 
+            await JS.InvokeVoidAsync("bodyQuestWorlds.setFacts", I18n.Facts(L.Lang));
+
             var ok = await JS.InvokeAsync<bool>("bodyQuestWorlds.mapInit",
                 "bqPath", "gdMilo", "gdMiloSay", "gdScene", nodes, finish, stored);
             if (!ok) return;
@@ -307,12 +315,12 @@
 
                 if (current >= NodeCount)
                 {
-                    await Celebrate("Every world explored. You are a Body Hero!", "world", true);
+                    await Celebrate(L["home.allDone"], "world", true);
                 }
                 else
                 {
                     _celebrate = current;
-                    await Celebrate($"New world open: {_modules[current].Title}", "world", true);
+                    await Celebrate(L.F("home.newWorld", WTitle(_modules[current])), "world", true);
                     _celebrate = -1;
                 }
             }
@@ -321,7 +329,7 @@
                 await Task.Delay(300);
                 await JS.InvokeVoidAsync("bodyQuestWorlds.scrollToMilo");
                 if (current >= NodeCount && AllDone)
-                    await JS.InvokeVoidAsync("bodyQuestWorlds.miloSay", "We explored everything together!", 4000);
+                    await JS.InvokeVoidAsync("bodyQuestWorlds.miloSay", L["home.together"], 4000);
             }
         }
         catch (JSException) { _walking = false; }
@@ -374,7 +382,7 @@
         {
             await Progress.PlayAsync("world");
             await Progress.ConfettiAsync(true);
-            await JS.InvokeVoidAsync("bodyQuestWorlds.miloSay", "You explored every world!", 4000);
+            await JS.InvokeVoidAsync("bodyQuestWorlds.miloSay", L["home.youExplored"], 4000);
             return;
         }
         await OpenWorld(current);
@@ -391,7 +399,7 @@
             try
             {
                 await JS.InvokeVoidAsync("bodyQuestWorlds.miloSay",
-                    $"Finish {_modules[index - 1].Title} first!", 3200);
+                    L.F("home.finishFirst", WTitle(_modules[index - 1])), 3200);
             }
             catch (JSException) { }
             StateHasChanged();

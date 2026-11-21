@@ -1,350 +1,127 @@
 @page "/profile"
-
+@inherits LocalizedComponentBase
 @inject ProfileService Profiles
-@inject WorldProgressService Progress
+@inject PlayerSession Session
 @inject NavigationManager Navigation
-@inject IJSRuntime JS
 
-<PageTitle>BodyQuest - My Explorer</PageTitle>
+<PageTitle>@L["p.title"]</PageTitle>
 
-<div class="gd-page pf-page">
-
-    <div class="gd-sky" aria-hidden="true">
-        <div class="gd-sun" data-pop="1"><span class="gd-sun-core"></span></div>
-        <span class="gd-cloud gd-cloud-a"></span>
-        <span class="gd-cloud gd-cloud-b"></span>
-        <span class="gd-cloud gd-cloud-c"></span>
-        <span class="gd-bird gd-bird-a"></span>
-    </div>
-
-    <GardenHeader Active="profile" />
+<div class="gd-page">
+    <header class="gd-header">
+        <a href="/" class="gd-logo"><span class="gd-logo-mark">B!</span><span>body<span>quest</span></span></a>
+        <nav class="gd-nav">
+            <a href="/"><svg class="bq-i"><use href="#i-map" /></svg> @L["nav.map"]</a>
+            <a class="gd-nav-active" href="/profile"><svg class="bq-i"><use href="#i-user" /></svg> @L["nav.profile"]</a>
+        </nav>
+        <div class="gd-tools"><PlayerChip /><LangSwitcher /></div>
+    </header>
 
     <main class="gd-main pf-main">
-
-        @if (_p is null)
-        {
-            <div class="pf-card pf-loading">
-                <img src="/images/body-explorer.png" alt="" />
-                <strong>Getting your explorer card...</strong>
-            </div>
-        }
-        else
-        {
-            @* ---------- explorer card + next step ---------- *@
-            <section class="pf-hero">
-
-                <div class="pf-card pf-id">
-                    <div class="pf-avatar-wrap">
-                        <div class="pf-avatar"><img src="@(_editing ? AvatarPath(_avatarInput) : _p.Avatar.Path)" alt="" /></div>
-                        <span class="pf-level">Level @_p.Level</span>
-                    </div>
-
-                    <div class="pf-id-text">
-                        @if (!_editing)
-                        {
-                            <span class="gd-eyebrow">MY EXPLORER CARD</span>
-                            <h1>@_p.Name</h1>
-                            <p class="pf-rank">@_p.Rank</p>
-
-                            <div class="pf-xp">
-                                <div class="gd-bar"><div class="gd-bar-fill" style="width:@(_p.LevelPercent)%"></div></div>
-                                <small>@_p.LevelPercent% to level @(_p.Level + 1)</small>
-                            </div>
-
-                            <button type="button" class="pf-edit" data-snd="open" @onclick="StartEdit">Edit my explorer</button>
-                        }
-                        else
-                        {
-                            <span class="gd-eyebrow">CHOOSE YOUR LOOK</span>
-                            <label class="pf-label" for="pf-name">Explorer name</label>
-                            <input id="pf-name" class="pf-input" maxlength="16" placeholder="Your name"
-                                   @bind="_nameInput" @bind:event="oninput" />
-
-                            <div class="pf-avatars" role="radiogroup" aria-label="Choose an avatar">
-                                @foreach (var a in ProfileService.Avatars)
-                                {
-                                    <button type="button" role="radio" aria-checked="@(a.Id == _avatarInput ? "true" : "false")"
-                                            class="pf-avatar-pick @(a.Id == _avatarInput ? "is-picked" : "")"
-                                            data-snd="pop" title="@a.Label" @onclick="() => _avatarInput = a.Id">
-                                        <img src="@a.Path" alt="@a.Label" />
-                                    </button>
-                                }
-                            </div>
-
-                            @if (_editError is not null)
-                            {
-                                <p class="pf-error">@_editError</p>
-                            }
-
-                            <div class="pf-edit-actions">
-                                <button type="button" class="gd-cta pf-save" data-snd="pop" @onclick="SaveEdit">Save</button>
-                                <button type="button" class="pf-cancel" data-snd="close" @onclick="CancelEdit">Cancel</button>
-                            </div>
-                        }
-                    </div>
-                </div>
-
-                <div class="pf-card pf-next">
-                    @if (_p.CurrentWorld is { } next)
-                    {
-                        <span class="gd-eyebrow">NEXT STOP</span>
-                        <div class="pf-next-body" style="--c:@(next.Accent)">
-                            <img src="@next.Image" alt="" />
-                            <div>
-                                <strong>@next.Title</strong>
-                                <small>@next.LessonsDone of @next.LessonsTotal lessons</small>
-                            </div>
-                        </div>
-                        <button type="button" class="gd-cta" data-snd="pop" @onclick="() => OpenWorld(next)">
-                            @(next.LessonsDone == 0 ? "Start" : "Continue") <svg class="bq-i"><use href="#i-arrow" /></svg>
-                        </button>
-                    }
-                    else
-                    {
-                        <span class="gd-eyebrow">ALL DONE</span>
-                        <div class="pf-next-body pf-next-done">
-                            <img src="/images/body-explorer.png" alt="" />
-                            <div>
-                                <strong>You explored every world!</strong>
-                                <small>Replay any lesson from the list below.</small>
-                            </div>
-                        </div>
-                        <button type="button" class="gd-cta" data-snd="pop" @onclick="Party">Celebrate</button>
-                    }
-                </div>
-            </section>
-
-            @* ---------- stats ---------- *@
-            <section class="pf-stats">
-                <div class="pf-stat pf-stat-gold">
-                    <span><svg class="bq-i"><use href="#i-star" /></svg></span>
-                    <div><strong>@_p.Stars</strong><small>Stars earned</small></div>
-                </div>
-                <div class="pf-stat pf-stat-green">
-                    <span><svg class="bq-i"><use href="#i-check" /></svg></span>
-                    <div><strong>@_p.LessonsDone<em> / @_p.LessonsTotal</em></strong><small>Lessons learned</small></div>
-                </div>
-                <div class="pf-stat pf-stat-purple">
-                    <span><svg class="bq-i"><use href="#i-flag" /></svg></span>
-                    <div><strong>@_p.WorldsDone<em> / @_p.Worlds.Count</em></strong><small>Worlds finished</small></div>
-                </div>
-                <div class="pf-stat pf-stat-pink">
-                    <span><svg class="bq-i"><use href="#i-bulb" /></svg></span>
-                    <div><strong>@_p.BadgesEarned<em> / @_p.Badges.Count</em></strong><small>Badges won</small></div>
-                </div>
-            </section>
-
-            @* ---------- worlds ---------- *@
-            <section class="pf-section">
-                <div class="pf-heading">
-                    <span class="gd-eyebrow">YOUR JOURNEY</span>
-                    <h2>My worlds</h2>
-                </div>
-
-                <div class="pf-worlds">
-                    @foreach (var w in _p.Worlds)
-                    {
-                        var world = w;
-                        <button type="button"
-                                class="pf-world @(world.Completed ? "is-done" : world.Unlocked ? "is-open" : "is-locked") @(_shake == world.Slug ? "is-shake" : "")"
-                                style="--c:@(world.Accent);--p:@(world.Percent)"
-                                data-snd="@(world.Unlocked ? "pop" : "locked")"
-                                @onclick="() => OpenWorld(world)">
-                            <span class="pf-ring">
-                                <img src="@world.Image" alt="" />
-                                @if (world.Completed)
-                                {
-                                    <i class="pf-tick"><svg class="bq-i"><use href="#i-check" /></svg></i>
-                                }
-                                else if (!world.Unlocked)
-                                {
-                                    <i class="pf-lock"><svg class="bq-i"><use href="#i-lock" /></svg></i>
-                                }
-                            </span>
-                            <strong>@world.Title</strong>
-                            <small>@(world.Unlocked ? $"{world.LessonsDone} / {world.LessonsTotal} lessons" : "Locked")</small>
-                            @if (world.Unlocked)
-                            {
-                                <span class="pf-world-stars">
-                                    <svg class="bq-i"><use href="#i-star" /></svg> @world.Stars
-                                </span>
-                            }
-                        </button>
-                    }
-                </div>
-            </section>
-
-            @* ---------- badges + fun fact ---------- *@
-            <section class="pf-bottom">
-                <div class="pf-card pf-badges-card">
-                    <div class="pf-badges-head">
-                        <div>
-                            <span class="gd-eyebrow">YOUR LITTLE VICTORIES</span>
-                            <h2>My badges</h2>
-                        </div>
-                        <span class="pf-count">@_p.BadgesEarned / @_p.Badges.Count</span>
-                    </div>
-
-                    <div class="pf-badges">
-                        @foreach (var b in _p.Badges)
-                        {
-                            <div class="pf-badge @(b.Earned ? "is-earned" : "is-locked")"
-                                 data-pop="@(b.Earned ? "1" : null)" data-snd="@(b.Earned ? null : "locked")">
-                                <span class="pf-badge-art">
-                                    <img src="@b.Image" alt="" />
-                                    @if (!b.Earned)
-                                    {
-                                        <i><svg class="bq-i"><use href="#i-lock" /></svg></i>
-                                    }
-                                </span>
-                                <strong>@b.Name</strong>
-                                <small>@b.Hint</small>
-                            </div>
-                        }
-                    </div>
-                </div>
-
-                <aside class="pf-card pf-fact">
-                    <svg class="bq-i pf-fact-icon"><use href="#i-bulb" /></svg>
-                    <span class="gd-eyebrow">DID YOU KNOW?</span>
-                    <h3>Your body is amazing!</h3>
-                    <p>@Facts[_factIndex]</p>
-                    <button type="button" class="pf-link" data-snd="pop" @onclick="NextFact">Another fact</button>
-                </aside>
-            </section>
-        }
-    </main>
-
-    @if (_celebrate is { } badge)
+    @if (_p is null)
     {
-        <div class="pf-overlay" @onclick="NextBadge">
-            <div class="pf-modal" @onclick:stopPropagation="true">
-                <div class="pf-modal-art"><img src="@badge.Image" alt="" /></div>
-                <span class="gd-eyebrow">NEW BADGE!</span>
-                <h2>@badge.Name</h2>
-                <p>@badge.Hint</p>
-                <button type="button" class="gd-cta" @onclick="NextBadge">Yay!</button>
-            </div>
-        </div>
+        <div class="pf-loading"><img src="/images/body-explorer.png" alt="" /></div>
     }
+    else
+    {
+        var next = _p.CurrentWorld;
+        <section class="pf-hero">
+            <div class="pf-card pf-id">
+                <div class="pf-avatar-wrap">
+                    <div class="pf-avatar"><img src="@AvatarPath" alt="" /></div>
+                    <span class="pf-level">@L.F("p.level", _p.Level, _p.Stars)</span>
+                </div>
+                <div class="pf-id-text">
+                    <h1>@DisplayName</h1>
+                    <p class="pf-rank">@_p.Rank</p>
+                    <div class="pf-xp">
+                        <div class="gd-bar"><div class="gd-bar-fill" style="width:@(_p.LevelPercent)%"></div></div>
+                        <small>@L.F("p.toNext", _p.LevelPercent)</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pf-card pf-next">
+                @if (next is not null)
+                {
+                    <div class="pf-next-body" style="--c:@next.Accent">
+                        <img src="@next.Image" alt="" />
+                        <div><strong>@WTitle(next)</strong><small>@next.LessonsDone / @next.LessonsTotal @L["home.lessons"]</small></div>
+                    </div>
+                    <button type="button" class="gd-cta" @onclick="() => Open(next.Slug)">
+                        @L["home.continue"] <svg class="bq-i"><use href="#i-arrow" /></svg>
+                    </button>
+                }
+                else
+                {
+                    <div class="pf-next-body pf-next-done"><img src="/images/body-explorer.png" alt="" /><div><strong>@L["home.allDone"]</strong></div></div>
+                }
+            </div>
+        </section>
+
+        <section class="pf-stats">
+            <div class="pf-stat pf-stat-gold"><span><svg class="bq-i"><use href="#i-star" /></svg></span><div><strong>@_p.Stars</strong><small>@L["tip.stars"]</small></div></div>
+            <div class="pf-stat pf-stat-green"><span><svg class="bq-i"><use href="#i-check" /></svg></span><div><strong>@_p.LessonsDone<em> / @_p.LessonsTotal</em></strong><small>@L["home.lessons"]</small></div></div>
+            <div class="pf-stat pf-stat-purple"><span><svg class="bq-i"><use href="#i-map" /></svg></span><div><strong>@_p.WorldsDone<em> / @_p.Worlds.Count</em></strong><small>@L["home.worlds"]</small></div></div>
+            <div class="pf-stat pf-stat-pink"><span><svg class="bq-i"><use href="#i-flag" /></svg></span><div><strong>@_p.BadgesEarned<em> / @_p.Badges.Count</em></strong><small>@L["p.badges"]</small></div></div>
+        </section>
+
+        <section class="pf-section">
+            <div class="pf-heading"><h2>@L["home.garden"]</h2></div>
+            <div class="pf-worlds">
+                @foreach (var w in _p.Worlds)
+                {
+                    var world = w;
+                    <button type="button" class="pf-world @(world.Unlocked ? "" : "is-locked")" disabled="@(!world.Unlocked)"
+                            @onclick="() => Open(world.Slug)">
+                        <span class="pf-ring" style="--c:@world.Accent;--p:@world.Percent">
+                            <img src="@world.Image" alt="" />
+                            @if (world.Completed) { <i class="pf-tick"><svg class="bq-i"><use href="#i-check" /></svg></i> }
+                            else if (!world.Unlocked) { <i class="pf-lock"><svg class="bq-i"><use href="#i-lock" /></svg></i> }
+                        </span>
+                        <strong>@WTitle(world)</strong>
+                        <small>@world.LessonsDone / @world.LessonsTotal</small>
+                    </button>
+                }
+            </div>
+        </section>
+
+        <section class="pf-section pf-card">
+            <div class="pf-badges-head">
+                <div><span class="gd-eyebrow">@L["p.vict"]</span><h2>@L["p.badges"]</h2></div>
+                <span class="pf-count">@_p.BadgesEarned / @_p.Badges.Count</span>
+            </div>
+            <div class="pf-badges">
+                @foreach (var b in _p.Badges)
+                {
+                    <div class="pf-badge @(b.Earned ? "is-earned" : "is-locked")">
+                        <span class="pf-badge-art"><img src="@b.Image" alt="" />@if (!b.Earned) { <i><svg class="bq-i"><use href="#i-lock" /></svg></i> }</span>
+                        <strong>@b.Name</strong><small>@b.Hint</small>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+    </main>
 </div>
 
 @code {
     private ProfileService.ExplorerProfile? _p;
-    private bool _editing;
-    private string _nameInput = "";
-    private string _avatarInput = "milo";
-    private string? _editError;
-    private string? _shake;
-    private int _factIndex;
-    private readonly Queue<ProfileService.BadgeInfo> _queue = new();
-    private ProfileService.BadgeInfo? _celebrate;
+    private PlayerInfo? _me;
 
-    private static readonly string[] Facts =
-    {
-        "Your heart beats about 100,000 times every day!",
-        "Your brain has billions of tiny neurons.",
-        "You have 206 bones when you grow up.",
-        "Your lungs work all day, even while you sleep.",
-        "Your tongue has thousands of tiny taste buds.",
-        "Your stomach squishes food like a washing machine!",
-        "Your skin is the biggest organ you have.",
-        "Blood travels all around your body in about one minute."
-    };
+    private string DisplayName => _me?.Name ?? _p!.Name;
+    private string AvatarPath => _me?.AvatarPath ?? _p!.Avatar.Path;
+
+    private string WTitle(ProfileService.WorldSummary w) =>
+        I18n.WorldTitle(new BodyModule { Slug = w.Slug, Title = w.Title }, L.Lang);
+
+    private void Open(string slug) => Navigation.NavigateTo("/module/" + slug);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-
+        await L.InitAsync();
+        _me = await Session.GetAsync();
         _p = await Profiles.LoadAsync();
-        _factIndex = Random.Shared.Next(Facts.Length);
         StateHasChanged();
-
-        // Celebrate badges the child has earned but has not seen yet.
-        var fresh = await Profiles.GetNewBadgesAsync(_p);
-        if (fresh.Count > 0)
-        {
-            await Profiles.MarkBadgesSeenAsync(fresh);
-            foreach (var b in fresh) _queue.Enqueue(b);
-            await Task.Delay(500);
-            await ShowNextBadge();
-        }
-    }
-
-    private async Task ShowNextBadge()
-    {
-        if (_queue.TryDequeue(out var next))
-        {
-            _celebrate = next;
-            StateHasChanged();
-            await Progress.PlayAsync("world");
-            await Progress.ConfettiAsync(true);
-        }
-        else
-        {
-            _celebrate = null;
-        }
-    }
-
-    private async Task NextBadge()
-    {
-        await Progress.PlayAsync("close");
-        await ShowNextBadge();
-    }
-
-    private string AvatarPath(string id) =>
-        (ProfileService.Avatars.FirstOrDefault(a => a.Id == id) ?? ProfileService.Avatars[0]).Path;
-
-    private void StartEdit()
-    {
-        if (_p is null) return;
-        _nameInput = _p.Name;
-        _avatarInput = _p.Avatar.Id;
-        _editError = null;
-        _editing = true;
-    }
-
-    private void CancelEdit()
-    {
-        _editing = false;
-        _editError = null;
-    }
-
-    private async Task SaveEdit()
-    {
-        if (!await Profiles.SaveAsync(_nameInput, _avatarInput))
-        {
-            _editError = "Please type a name for your explorer.";
-            await Progress.PlayAsync("locked");
-            return;
-        }
-
-        _p = await Profiles.LoadAsync();
-        _editing = false;
-        _editError = null;
-        await Progress.PlayAsync("sparkle");
-        await Progress.ConfettiAsync(false);
-    }
-
-    private async Task OpenWorld(ProfileService.WorldSummary world)
-    {
-        if (!world.Unlocked)
-        {
-            _shake = world.Slug;
-            StateHasChanged();
-            await Task.Delay(600);
-            _shake = null;
-            return;
-        }
-        await Progress.PlayAsync("open");
-        Navigation.NavigateTo($"/module/{world.Slug}");
-    }
-
-    private void NextFact() => _factIndex = (_factIndex + 1) % Facts.Length;
-
-    private async Task Party()
-    {
-        await Progress.PlayAsync("world");
-        await Progress.ConfettiAsync(true);
     }
 }

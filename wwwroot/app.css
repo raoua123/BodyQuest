@@ -71,3 +71,18 @@ button, input {
     cursor: pointer;
     float: right;
 }
+/* ---------- language switcher ---------- */
+.bq-lang { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: #ffffffd9; box-shadow: 0 2px 0 #0000001a; }
+.bq-lang-btn { border: 0; border-radius: 999px; padding: 6px 12px; font: 800 13px 'Nunito', 'Cairo', sans-serif; color: #5a4b8a; background: transparent; cursor: pointer; }
+.bq-lang-btn.is-on { background: #8174d9; color: #fff; }
+
+/* ---------- Arabic / right-to-left ---------- */
+html[dir="rtl"] body, html[dir="rtl"] button, html[dir="rtl"] .gd-page, html[dir="rtl"] .wd-page, html[dir="rtl"] .bq-profile,
+html[dir="rtl"] :is(h1, h2, h3) { font-family: 'Cairo', 'Nunito', sans-serif; }
+html[dir="rtl"] :is(.gd-logo, .wd-logo, .bp-brand) { direction: ltr; }
+html[dir="rtl"] :is(.gd-scene, .bp-map) { direction: ltr; }
+html[dir="rtl"] :is(.gd-sign, .gd-milo-say, .gd-chest-tag, .gd-tag, .gd-here, .bp-world-label, .bp-world-sub, .bp-map-caption) { unicode-bidi: plaintext; }
+html[dir="rtl"] .bq-i:has(use[href="#i-arrow"]),
+html[dir="rtl"] .bq-i:has(use[href="#i-back"]),
+html[dir="rtl"] .bp-continue span { transform: scaleX(-1); }
+html[dir="rtl"] .bp-continue span { display: inline-block; }

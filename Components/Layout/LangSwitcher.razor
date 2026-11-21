@@ -1,0 +1,17 @@
+@inherits LocalizedComponentBase
+
+<div class="bq-lang" role="group" aria-label="@L["lang.label"]">
+    @foreach (var item in Langs)
+    {
+        var lg = item.Code;
+        <button type="button" lang="@lg"
+                class="bq-lang-btn @(L.Lang == lg ? "is-on" : "")"
+                aria-pressed="@(L.Lang == lg ? "true" : "false")"
+                @onclick="() => L.SetAsync(lg)">@item.Label</button>
+    }
+</div>
+
+@code {
+    private static readonly (string Code, string Label)[] Langs =
+        { ("fr", "FR"), ("en", "EN"), ("ar", "عربي") };
+}

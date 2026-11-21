@@ -19,6 +19,12 @@ public static class WorldArt
             "#7a8fe0", "#e8edff", "#cfd8ff", "#f3f5ff", "Strong bones, mighty muscles"),
         ["cinq-sens"] = new("/images/learning-worlds/senses-world.webp", "/images/learning-worlds/senses-world.webp",
             "#37b6c9", "#def6fa", "#b9ecf5", "#eefbfd", "See, hear, smell, taste and touch"),
+        ["dents"] = new("/images/learning-worlds/teeth-world.svg", "/images/learning-worlds/teeth-world.svg",
+            "#33b4c9", "#dcf6fa", "#bdeef5", "#eefbfd", "Tiny tools for biting and smiling"),
+        ["peau"] = new("/images/learning-worlds/skin-world.svg", "/images/learning-worlds/skin-world.svg",
+            "#ee8a6a", "#ffe9e0", "#ffd8c9", "#fff3ee", "Your coat that protects you"),
+        ["defenses"] = new("/images/learning-worlds/defense-world.svg", "/images/learning-worlds/defense-world.svg",
+            "#5a8de0", "#e4edff", "#cfe0ff", "#f2f6ff", "A tiny army that watches over you"),
     };
 
     private static readonly Art Fallback = new("/images/portal.png", "/images/portal.png",

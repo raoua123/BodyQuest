@@ -1,0 +1,39 @@
+@inherits LocalizedComponentBase
+@inject PlayerSession Session
+@inject NavigationManager Navigation
+
+@if (_loaded)
+{
+    @if (_player is not null)
+    {
+        <div class="pq-chip" title="@_player.Name">
+            <img src="@_player.AvatarPath" alt="" />
+            <span class="pq-name">@_player.Name</span>
+            <button type="button" class="pq-out" data-snd="tap" @onclick="SignOut">
+                <span>@L["auth.out"]</span>
+            </button>
+        </div>
+    }
+    else
+    {
+        <a href="/login" class="pq-in" data-snd="tap">
+            <svg class="bq-i"><use href="#i-user" /></svg>
+            <span>@L["auth.in"]</span>
+        </a>
+    }
+}
+
+@code {
+    private PlayerInfo? _player;
+    private bool _loaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { _player = await Session.GetAsync(); }
+        catch (InvalidOperationException) { _player = null; }
+        _loaded = true;
+    }
+
+    // A normal page request clears the login cookie, then the page reloads as a guest.
+    private void SignOut() => Navigation.NavigateTo("/api/auth/logout", forceLoad: true);
+}
